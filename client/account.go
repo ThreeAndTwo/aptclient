@@ -123,6 +123,19 @@ func (a *AptAccount) AccountFromMnemonic(index int) (*types.AptAccount, error) {
 	return a.mnemonic2Account(index)
 }
 
+func (a *AptAccount) GetAptAccount(index int) (*types.AptAccount, error) {
+	switch a.keyTy {
+	case types.MnemonicTy:
+		return a.AccountFromMnemonic(index)
+	case types.PrivateTy:
+		return a.AccountFromPrivateKey()
+	case types.NoneTy:
+		return a.AccountFromRandomKey()
+	default:
+		return nil, types.ErrNotNoneTy
+	}
+}
+
 func pubKeyBytes(prvKey ed25519.PrivateKey) []byte {
 	return prvKey.Public().(ed25519.PublicKey)
 }

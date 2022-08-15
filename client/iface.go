@@ -10,6 +10,7 @@ type (
 		AccountFromRandomKey() (*types.AptAccount, error)
 		AccountFromPrivateKey() (*types.AptAccount, error)
 		AccountFromMnemonic(index int) (*types.AptAccount, error)
+		GetAptAccount(index int) (*types.AptAccount, error)
 
 		Sign(msg []byte) []byte
 		Verify(sig, msg []byte) bool

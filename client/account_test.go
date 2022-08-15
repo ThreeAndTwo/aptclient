@@ -89,6 +89,77 @@ func TestNewAptAccount(t *testing.T) {
 	}
 }
 
+func TestAptAccount_GetAptAccount(t *testing.T) {
+	var tests = []struct {
+		name    string
+		key     string
+		authKey string
+		index   int
+		keyTy   types.KeyTy
+	}{
+		{
+			name:    "12L words",
+			key:     os.Getenv("KEY"),
+			authKey: os.Getenv("AUTH_KEY"),
+			index:   0,
+			keyTy:   types.MnemonicTy,
+		},
+		{
+			name:    "null key",
+			key:     "",
+			authKey: "",
+			index:   0,
+			keyTy:   types.NoneTy,
+		},
+		{
+			name:    "correct privateKey",
+			key:     os.Getenv("KEY"),
+			authKey: os.Getenv("AUTH_KEY"),
+			index:   0,
+			keyTy:   types.PrivateTy,
+		},
+		{
+			name:    "error privateKey",
+			key:     os.Getenv("KEY"),
+			authKey: os.Getenv("AUTH_KEY"),
+			index:   0,
+			keyTy:   types.PrivateTy,
+		},
+		{
+			name:    "error mnemonic",
+			key:     os.Getenv("KEY"),
+			authKey: os.Getenv("AUTH_KEY"),
+			index:   0,
+			keyTy:   types.MnemonicTy,
+		},
+		{
+			name:    "index < 0 for mnemonic",
+			key:     os.Getenv("KEY"),
+			authKey: os.Getenv("AUTH_KEY"),
+			index:   -3,
+			keyTy:   types.MnemonicTy,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			na := NewAptAccount(tt.key, tt.authKey)
+
+			if na.keyTy != tt.keyTy {
+				t.Logf("keyTy mismatched for %s \n", tt.name)
+				return
+			}
+
+			_account, err := na.GetAptAccount(tt.index)
+			if err != nil {
+				t.Logf("keyTy mismatched for %s \n", tt.name)
+				return
+			}
+			printAccount(_account)
+		})
+	}
+}
+
 func accountByMnemonic(a *AptAccount, index int) error {
 	_account, err := a.AccountFromMnemonic(index)
 	if err != nil && err != types.ErrMnemonicIndex {
