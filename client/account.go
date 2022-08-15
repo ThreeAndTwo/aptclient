@@ -40,14 +40,12 @@ func IsMnemonic(words string) bool {
 }
 
 func (a *AptAccount) prvKey2Account(prvKey string) (*types.AptAccount, error) {
-	res, err := base58.Decode(prvKey)
+	privateKey, err := PrivateKey2Bytes(prvKey)
 	if err != nil {
 		return nil, err
 	}
 
-	privateKey := ed25519.NewKeyFromSeed(res[:32])
 	a.prvKey = privateKey
-
 	return &types.AptAccount{
 		Address:    a.address(),
 		PublicKey:  a.publicKey(),
@@ -138,6 +136,14 @@ func (a *AptAccount) GetAptAccount(index int) (*types.AptAccount, error) {
 
 func pubKeyBytes(prvKey ed25519.PrivateKey) []byte {
 	return prvKey.Public().(ed25519.PublicKey)
+}
+
+func PrivateKey2Bytes(prvKey string) (ed25519.PrivateKey, error) {
+	res, err := base58.Decode(prvKey)
+	if err != nil {
+		return nil, err
+	}
+	return ed25519.NewKeyFromSeed(res[:32]), nil
 }
 
 func PrivateKey2Str(prvKey ed25519.PrivateKey) string {
