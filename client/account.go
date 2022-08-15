@@ -12,15 +12,15 @@ import (
 	"strings"
 )
 
-type aptAccount struct {
+type AptAccount struct {
 	key     string
 	authKey string
 	prvKey  ed25519.PrivateKey
 	keyTy   types.KeyTy
 }
 
-func NewAptAccount(key, authKey string) *aptAccount {
-	account := &aptAccount{}
+func NewAptAccount(key, authKey string) *AptAccount {
+	account := &AptAccount{}
 	if IsMnemonic(key) {
 		account.keyTy = types.MnemonicTy
 	} else if key != "" {
@@ -39,7 +39,7 @@ func IsMnemonic(words string) bool {
 	return l == 12 || l == 15 || l == 18 || l == 21 || l == 24
 }
 
-func (a *aptAccount) prvKey2Account(prvKey string) (*types.AptAccount, error) {
+func (a *AptAccount) prvKey2Account(prvKey string) (*types.AptAccount, error) {
 	res, err := base58.Decode(prvKey)
 	if err != nil {
 		return nil, err
@@ -56,7 +56,7 @@ func (a *aptAccount) prvKey2Account(prvKey string) (*types.AptAccount, error) {
 	}, nil
 }
 
-func (a *aptAccount) genPrvKey() (*types.AptAccount, error) {
+func (a *AptAccount) genPrvKey() (*types.AptAccount, error) {
 	_, privateKey, err := ed25519.GenerateKey(rand.Reader)
 	if err != nil {
 		return nil, err
@@ -72,7 +72,7 @@ func (a *aptAccount) genPrvKey() (*types.AptAccount, error) {
 	}, nil
 }
 
-func (a *aptAccount) mnemonic2Account(index int) (*types.AptAccount, error) {
+func (a *AptAccount) mnemonic2Account(index int) (*types.AptAccount, error) {
 	km, err := key_manager.NewKeyManagerWithMnemonic(256, "", a.key)
 	if err != nil {
 		return nil, types.ErrMnemonicCount
@@ -98,21 +98,21 @@ func (a *aptAccount) mnemonic2Account(index int) (*types.AptAccount, error) {
 	}, nil
 }
 
-func (a *aptAccount) AccountFromRandomKey() (*types.AptAccount, error) {
+func (a *AptAccount) AccountFromRandomKey() (*types.AptAccount, error) {
 	if a.keyTy != types.NoneTy {
 		return nil, types.ErrNotNoneTy
 	}
 	return a.genPrvKey()
 }
 
-func (a *aptAccount) AccountFromPrivateKey() (*types.AptAccount, error) {
+func (a *AptAccount) AccountFromPrivateKey() (*types.AptAccount, error) {
 	if a.keyTy != types.PrivateTy {
 		return nil, types.ErrNotPrivateKeyTy
 	}
 	return a.prvKey2Account(a.key)
 }
 
-func (a *aptAccount) AccountFromMnemonic(index int) (*types.AptAccount, error) {
+func (a *AptAccount) AccountFromMnemonic(index int) (*types.AptAccount, error) {
 	if a.keyTy != types.MnemonicTy {
 		return nil, types.ErrNotMnemonicTy
 	}
@@ -131,11 +131,11 @@ func PrivateKey2Str(prvKey ed25519.PrivateKey) string {
 	return base58.Encode(prvKey)
 }
 
-func (a *aptAccount) publicKey() string {
+func (a *AptAccount) publicKey() string {
 	return fmt.Sprint("0x", hex.EncodeToString(pubKeyBytes(a.prvKey)))
 }
 
-func (a *aptAccount) address() string {
+func (a *AptAccount) address() string {
 	hasher := sha3.New256()
 
 	hasher.Write(pubKeyBytes(a.prvKey))
@@ -147,10 +147,10 @@ func (a *aptAccount) address() string {
 	return fmt.Sprint("0x", hex.EncodeToString(hasher.Sum(nil)))
 }
 
-func (a *aptAccount) Sign(msg []byte) []byte {
+func (a *AptAccount) Sign(msg []byte) []byte {
 	return ed25519.Sign(a.prvKey, msg)
 }
 
-func (a *aptAccount) Verify(sig, msg []byte) bool {
+func (a *AptAccount) Verify(sig, msg []byte) bool {
 	return ed25519.Verify(pubKeyBytes(a.prvKey), msg, sig)
 }

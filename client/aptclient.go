@@ -11,11 +11,11 @@ import (
 	"strings"
 )
 
-type aptClient struct {
+type AptClient struct {
 	rpc string
 }
 
-func (a *aptClient) LedgerInfo() (*types.LedgerInfo, error) {
+func (a *AptClient) LedgerInfo() (*types.LedgerInfo, error) {
 	rpc := fmt.Sprintf("%s/", a.rpc)
 
 	req, err := a.connClient(rpc, nil).Request(GetTy)
@@ -32,7 +32,7 @@ func (a *aptClient) LedgerInfo() (*types.LedgerInfo, error) {
 	return _info, err
 }
 
-func (a *aptClient) Account(address string) (*types.Account, error) {
+func (a *AptClient) Account(address string) (*types.Account, error) {
 	if checkAccount(address) {
 		return nil, types.ErrAddressNull
 	}
@@ -56,7 +56,7 @@ func checkAccount(address string) bool {
 	return address == "" || len(address) != 66
 }
 
-func (a *aptClient) GetBalance(address string) (*big.Int, error) {
+func (a *AptClient) GetBalance(address string) (*big.Int, error) {
 	if checkAccount(address) {
 		return nil, types.ErrAddressNull
 	}
@@ -74,7 +74,7 @@ func (a *aptClient) GetBalance(address string) (*big.Int, error) {
 	return big.NewInt(_v), nil
 }
 
-func (a *aptClient) GetNonce(address string) (uint64, error) {
+func (a *AptClient) GetNonce(address string) (uint64, error) {
 	if checkAccount(address) {
 		return 0, types.ErrAddressNull
 	}
@@ -87,7 +87,7 @@ func (a *aptClient) GetNonce(address string) (uint64, error) {
 	return strconv.ParseUint(nonce, 10, 64)
 }
 
-func (a *aptClient) AccountResources(address, version string) ([]*types.AccountResource, error) {
+func (a *AptClient) AccountResources(address, version string) ([]*types.AccountResource, error) {
 	if checkAccount(address) {
 		return nil, types.ErrAddressNull
 	}
@@ -113,7 +113,7 @@ func (a *aptClient) AccountResources(address, version string) ([]*types.AccountR
 	return _as, err
 }
 
-func (a *aptClient) AccountResourceByType(address, resourceType, version string) (*types.AccountResource, error) {
+func (a *AptClient) AccountResourceByType(address, resourceType, version string) (*types.AccountResource, error) {
 	if checkAccount(address) {
 		return nil, types.ErrAddressNull
 	}
@@ -143,7 +143,7 @@ func (a *aptClient) AccountResourceByType(address, resourceType, version string)
 	return _as, err
 }
 
-func (a *aptClient) AccountModules(address, version string) ([]*types.AccountModule, error) {
+func (a *AptClient) AccountModules(address, version string) ([]*types.AccountModule, error) {
 	if checkAccount(address) {
 		return nil, types.ErrAddressNull
 	}
@@ -169,7 +169,7 @@ func (a *aptClient) AccountModules(address, version string) ([]*types.AccountMod
 	return _am, err
 }
 
-func (a *aptClient) AccountModuleById(address, moduleId, version string) (*types.AccountModule, error) {
+func (a *AptClient) AccountModuleById(address, moduleId, version string) (*types.AccountModule, error) {
 	if checkAccount(address) {
 		return nil, types.ErrAddressNull
 	}
@@ -199,7 +199,7 @@ func (a *aptClient) AccountModuleById(address, moduleId, version string) (*types
 	return _am, err
 }
 
-func (a *aptClient) Transactions(limit, start int) ([]*types.Transaction, error) {
+func (a *AptClient) Transactions(limit, start int) ([]*types.Transaction, error) {
 	if limit <= 0 {
 		limit = 25
 	}
@@ -224,7 +224,7 @@ func (a *aptClient) Transactions(limit, start int) ([]*types.Transaction, error)
 	return txs, err
 }
 
-func (a *aptClient) TransactionsByAccount(address string, limit, start int) ([]*types.Transaction, error) {
+func (a *AptClient) TransactionsByAccount(address string, limit, start int) ([]*types.Transaction, error) {
 	if limit <= 0 {
 		limit = 25
 	}
@@ -253,7 +253,7 @@ func (a *aptClient) TransactionsByAccount(address string, limit, start int) ([]*
 	return txs, err
 }
 
-func (a *aptClient) Transaction(hashOrVersion string) (*types.Transaction, error) {
+func (a *AptClient) Transaction(hashOrVersion string) (*types.Transaction, error) {
 	if hashOrVersion == "" {
 		return nil, types.ErrHashNull
 	}
@@ -273,7 +273,7 @@ func (a *aptClient) Transaction(hashOrVersion string) (*types.Transaction, error
 	return tx, err
 }
 
-func (a *aptClient) SignMessage(unSigTx *types.UnsignedTx) (*types.SigningMessage, error) {
+func (a *AptClient) SignMessage(unSigTx *types.UnsignedTx) (*types.SigningMessage, error) {
 	rpc := fmt.Sprintf("%s/transactions/signing_message", a.rpc)
 	unsignedMap := initUnSigMap(unSigTx)
 
@@ -291,7 +291,7 @@ func (a *aptClient) SignMessage(unSigTx *types.UnsignedTx) (*types.SigningMessag
 	return sigMsg, err
 }
 
-func (a *aptClient) SignTransaction(account *types.AptAccount, unsignedTx *types.UnsignedTx) (*types.SignedTx, error) {
+func (a *AptClient) SignTransaction(account *types.AptAccount, unsignedTx *types.UnsignedTx) (*types.SignedTx, error) {
 	msg, err := a.SignMessage(unsignedTx)
 	if err != nil {
 		return nil, err
@@ -314,7 +314,7 @@ func (a *aptClient) SignTransaction(account *types.AptAccount, unsignedTx *types
 	}, nil
 }
 
-func (a *aptClient) SubmitTx(signedTx *types.SignedTx) (*types.Transaction, error) {
+func (a *AptClient) SubmitTx(signedTx *types.SignedTx) (*types.Transaction, error) {
 	rpc := fmt.Sprintf("%s/transactions", a.rpc)
 	signedMap := initSigTx(signedTx)
 
@@ -332,7 +332,7 @@ func (a *aptClient) SubmitTx(signedTx *types.SignedTx) (*types.Transaction, erro
 	return tx, err
 }
 
-func (a *aptClient) SimulateTx(signedTx *types.SignedTx) (*types.Transaction, error) {
+func (a *AptClient) SimulateTx(signedTx *types.SignedTx) (*types.Transaction, error) {
 	rpc := fmt.Sprintf("%s/transactions/simulate", a.rpc)
 	signedMap := initSigTx(signedTx)
 
@@ -350,13 +350,13 @@ func (a *aptClient) SimulateTx(signedTx *types.SignedTx) (*types.Transaction, er
 	return tx, err
 }
 
-func NewAptClient(rpc string) (*aptClient, error) {
+func NewAptClient(rpc string) (*AptClient, error) {
 	if rpc == "" {
 		return nil, types.ErrRpcNull
 	}
 
 	rpc = fmtRpc(rpc)
-	return &aptClient{rpc: rpc}, nil
+	return &AptClient{rpc: rpc}, nil
 }
 
 func fmtRpc(rpc string) string {
@@ -372,7 +372,7 @@ func initHeader() map[string]string {
 	return header
 }
 
-func (a *aptClient) connClient(url string, params map[string]interface{}) *Net {
+func (a *AptClient) connClient(url string, params map[string]interface{}) *Net {
 	return NewNet(url, initHeader(), params)
 }
 
