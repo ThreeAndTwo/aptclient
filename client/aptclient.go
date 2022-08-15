@@ -332,11 +332,11 @@ func (a *AptClient) SubmitTx(signedTx *types.SignedTx) (*types.Transaction, erro
 	return tx, err
 }
 
-func (a *AptClient) SimulateTx(signedTx *types.SignedTx) (*types.Transaction, error) {
+func (a *AptClient) SimulateTx(signedTx *types.SignedTx) ([]*types.SimulateTx, error) {
 	rpc := fmt.Sprintf("%s/transactions/simulate", a.rpc)
 	signedMap := initSigTx(signedTx)
 
-	var tx *types.Transaction
+	var tx []*types.SimulateTx
 	req, err := a.connClient(rpc, signedMap).Request(PostTy)
 	if err != nil {
 		return nil, err

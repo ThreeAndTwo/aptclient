@@ -88,6 +88,28 @@ type Transaction struct {
 	Changes             []TxChange       `json:"changes"`
 }
 
+type SimulateTx struct {
+	Type                    string                `json:"type"`
+	Version                 string                `json:"version"`
+	Hash                    string                `json:"hash"`
+	StateRootHash           string                `json:"state_root_hash"`
+	EventRootHash           string                `json:"event_root_hash"`
+	GasUsed                 string                `json:"gas_used"`
+	Success                 bool                  `json:"success"`
+	VMStatus                string                `json:"vm_status"`
+	AccumulatorRootHash     string                `json:"accumulator_root_hash"`
+	Changes                 []TxChange            `json:"changes"`
+	Sender                  string                `json:"sender"`
+	SequenceNumber          string                `json:"sequence_number"`
+	MaxGasAmount            string                `json:"max_gas_amount"`
+	GasUnitPrice            string                `json:"gas_unit_price"`
+	ExpirationTimestampSecs string                `json:"expiration_timestamp_secs"`
+	Payload                 ScriptFunctionPayload `json:"payload"`
+	Signature               TxSignature           `json:"signature"`
+	Events                  []TxEvents            `json:"events"`
+	Timestamp               string                `json:"timestamp"`
+}
+
 type TxChange struct {
 	Type         string `json:"type"`
 	StateKeyHash string `json:"state_key_hash"`

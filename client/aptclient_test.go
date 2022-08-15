@@ -653,6 +653,71 @@ func TestAptClient_SendTransaction(t *testing.T) {
 	}
 }
 
+func TestAptClient_SimulateTx(t *testing.T) {
+	tests := []struct {
+		name        string
+		rpc         string
+		mnemonic    string
+		index       int
+		receiptAddr string
+		amount      uint64
+	}{
+		{
+			name:        "normal",
+			rpc:         RPC_ADDR,
+			mnemonic:    os.Getenv("KEY"),
+			index:       0,
+			receiptAddr: "0x6d829df49edf618de9002d16b03118f50cb0b22cb56901349720a07f6a5b10c5",
+			amount:      1000,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c, err := NewAptClient(tt.rpc)
+			if err != nil {
+				t.Logf("new apt client error: %s", err)
+				return
+			}
+
+			na := NewAptAccount(tt.mnemonic, "")
+			account, err := na.AccountFromMnemonic(tt.index)
+			if err != nil {
+				t.Logf("new account from mnemonic error: %s", err)
+				return
+			}
+
+			nonce, err := c.GetNonce(account.Address)
+			if err != nil {
+				t.Logf("get balance for %s error: %s", tt.name, err.Error())
+				return
+			}
+
+			unsignedTx, err := getTransferAptParams(account, tt.receiptAddr, tt.amount, nonce)
+			if err != nil {
+				t.Logf("getTransferAptParams for %s error: %s", tt.name, err.Error())
+				return
+			}
+
+			signedTx, err := c.SignTransaction(account, unsignedTx)
+			if err != nil {
+				t.Logf("sign tx for %s error: %s", tt.name, err.Error())
+				return
+			}
+
+			signedTx.Signature.Signature = "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+			tx, err := c.SimulateTx(signedTx)
+			if err != nil {
+				t.Logf("simulate transaction for %s error: %s", tt.name, err.Error())
+				return
+			}
+
+			b, _ := json.Marshal(tx)
+			t.Logf("simulate transaction result: %s", string(b))
+		})
+	}
+}
+
 func asyncTxStatus(txHash string) (bool, error) {
 	count := 0
 	c, _ := NewAptClient(RPC_ADDR)
@@ -683,7 +748,7 @@ func genUnSignTx(account *types.AptAccount, nonce uint64, payload interface{}) (
 	return &types.UnsignedTx{
 		Sender:          account.Address,
 		SequenceNumber:  nonce,
-		MaxGasAmount:    1000,
+		MaxGasAmount:    2000,
 		GasUnitPrice:    1,
 		GasCurrencyCode: "XUS",
 		ExpirationTime:  uint64(time.Now().Add(10 * time.Second).Unix()),

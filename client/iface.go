@@ -31,6 +31,6 @@ type (
 		SignMessage(unSigTx *types.UnsignedTx) (*types.SigningMessage, error)
 		SignTransaction(account *types.AptAccount, unsignedTx *types.UnsignedTx) (*types.SignedTx, error)
 		SubmitTx(signedTx *types.SignedTx) (*types.Transaction, error)
-		SimulateTx(signedTx *types.SignedTx) (*types.Transaction, error)
+		SimulateTx(signedTx *types.SignedTx) ([]*types.SimulateTx, error)
 	}
 )
