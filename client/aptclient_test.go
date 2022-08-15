@@ -626,16 +626,6 @@ func TestAptClient_SendTransaction(t *testing.T) {
 			return
 		}
 
-		// TODO: 🤔 Transaction simulation cannot carry valid signature?
-		//tx, err := c.SimulateTx(signedTx)
-		//if err != nil {
-		//	t.Logf("simulate transaction for %s error: %s", tt.name, err.Error())
-		//	return
-		//}
-		//
-		//b, _ := json.Marshal(tx)
-		//t.Logf("simulate transaction result: %s", string(b))
-
 		submitTx, err := c.SubmitTx(signedTx)
 		if err != nil {
 			t.Logf("submit transaction for %s error: %s", tt.name, err.Error())
