@@ -89,7 +89,7 @@ func TestNewAptAccount(t *testing.T) {
 	}
 }
 
-func accountByMnemonic(a *aptAccount, index int) error {
+func accountByMnemonic(a *AptAccount, index int) error {
 	_account, err := a.AccountFromMnemonic(index)
 	if err != nil && err != types.ErrMnemonicIndex {
 		return err
@@ -116,7 +116,7 @@ func printAccount(a *types.AptAccount) {
 	fmt.Printf("publicKey: %s \n", a.PublicKey)
 }
 
-func accountByPrivateKey(a *aptAccount) error {
+func accountByPrivateKey(a *AptAccount) error {
 	_account, err := a.AccountFromPrivateKey()
 	if err != nil {
 		return err
@@ -136,7 +136,7 @@ func accountByPrivateKey(a *aptAccount) error {
 	return nil
 }
 
-func accountByRandomKey(a *aptAccount) error {
+func accountByRandomKey(a *AptAccount) error {
 	_account, err := a.AccountFromRandomKey()
 	if err != nil {
 		return err
