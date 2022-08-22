@@ -49,9 +49,6 @@ type Key struct {
 
 func (k *Key) EncodeEth() (address string, publicKey string, privateKey string) {
 	prvKey, _ := btcec.PrivKeyFromBytes(btcec.S256(), k.bip32Key.Key)
-	//pub := pubKey.ToECDSA()
-	//address = crypto.PubkeyToAddress(*pub).Hex()
-	//publicKey = string(crypto.FromECDSAPub(pub))
 	privateKey = fmt.Sprintf("%x", prvKey.D)
 	for i := len(privateKey); i < 64; i++ {
 		privateKey = "0" + privateKey

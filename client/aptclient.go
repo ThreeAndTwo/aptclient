@@ -65,6 +65,11 @@ func (a *AptClient) GetBalance(address string) (*big.Int, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	if res.Data == nil {
+		return nil, types.ErrResourceTypeNull
+	}
+
 	v := res.Data["coin"].(map[string]interface{})
 
 	_v, err := strconv.ParseInt(v["value"].(string), 10, 0)
@@ -83,6 +88,11 @@ func (a *AptClient) GetNonce(address string) (uint64, error) {
 	if err != nil {
 		return 0, err
 	}
+
+	if res.Data == nil {
+		return 0, types.ErrResourceTypeNull
+	}
+
 	nonce := res.Data["sequence_number"].(string)
 	return strconv.ParseUint(nonce, 10, 64)
 }
@@ -253,14 +263,24 @@ func (a *AptClient) TransactionsByAccount(address string, limit, start int) ([]*
 	return txs, err
 }
 
-func (a *AptClient) Transaction(hashOrVersion string) (*types.Transaction, error) {
+func (a *AptClient) TransactionByHash(hash string) (*types.Transaction, error) {
+	rpc := fmt.Sprintf("%s/transactions/by_hash", a.rpc)
+	return a.transaction(rpc, hash)
+}
+
+func (a *AptClient) TransactionByVersion(version string) (*types.Transaction, error) {
+	rpc := fmt.Sprintf("%s/transactions/by_version", a.rpc)
+	return a.transaction(rpc, version)
+}
+
+func (a *AptClient) transaction(rpc, hashOrVersion string) (*types.Transaction, error) {
 	if hashOrVersion == "" {
 		return nil, types.ErrHashNull
 	}
-	rpc := fmt.Sprintf("%s/transactions/%s", a.rpc, hashOrVersion)
+	_rpc := fmt.Sprintf("%s/%s", rpc, hashOrVersion)
 
 	var tx *types.Transaction
-	req, err := a.connClient(rpc, nil).Request(GetTy)
+	req, err := a.connClient(_rpc, nil).Request(GetTy)
 	if err != nil {
 		return nil, err
 	}
@@ -274,20 +294,22 @@ func (a *AptClient) Transaction(hashOrVersion string) (*types.Transaction, error
 }
 
 func (a *AptClient) SignMessage(unSigTx *types.UnsignedTx) (*types.SigningMessage, error) {
-	rpc := fmt.Sprintf("%s/transactions/signing_message", a.rpc)
+	rpc := fmt.Sprintf("%s/transactions/encode_submission", a.rpc)
 	unsignedMap := initUnSigMap(unSigTx)
 
-	var sigMsg *types.SigningMessage
+	sigMsg := &types.SigningMessage{}
 	req, err := a.connClient(rpc, unsignedMap).Request(PostTy)
 	if err != nil {
 		return nil, err
 	}
 
-	if hasExceptionForResp(req) {
-		return nil, fmt.Errorf(req)
+	if req == "" {
+		return nil, types.ErrSignNull
 	}
 
-	err = json.Unmarshal([]byte(req), &sigMsg)
+	//req = strings.Trim(req, `"`)
+
+	sigMsg.Message = strings.Trim(req, `"`)
 	return sigMsg, err
 }
 
@@ -395,7 +417,7 @@ func initSigTx(signedTx *types.SignedTx) map[string]interface{} {
 	signedMap["sequence_number"] = fmt.Sprintf("%d", signedTx.SequenceNumber)
 	signedMap["max_gas_amount"] = fmt.Sprintf("%d", signedTx.MaxGasAmount)
 	signedMap["gas_unit_price"] = fmt.Sprintf("%d", signedTx.GasUnitPrice)
-	signedMap["gas_currency_code"] = signedTx.GasCurrencyCode
+	//signedMap["gas_currency_code"] = signedTx.GasCurrencyCode
 	signedMap["expiration_timestamp_secs"] = fmt.Sprintf("%d", signedTx.ExpirationTime)
 	signedMap["payload"] = signedTx.Payload
 	signedMap["signature"] = signedTx.Signature
@@ -408,8 +430,9 @@ func initUnSigMap(unSigTx *types.UnsignedTx) map[string]interface{} {
 	unsignedMap["sequence_number"] = fmt.Sprintf("%d", unSigTx.SequenceNumber)
 	unsignedMap["max_gas_amount"] = fmt.Sprintf("%d", unSigTx.MaxGasAmount)
 	unsignedMap["gas_unit_price"] = fmt.Sprintf("%d", unSigTx.GasUnitPrice)
-	unsignedMap["gas_currency_code"] = unSigTx.GasCurrencyCode
+	//unsignedMap["gas_currency_code"] = unSigTx.GasCurrencyCode
 	unsignedMap["expiration_timestamp_secs"] = fmt.Sprintf("%d", unSigTx.ExpirationTime)
 	unsignedMap["payload"] = unSigTx.Payload
+	//unsignedMap["secondary_signers"] = []string{unSigTx.Sender}
 	return unsignedMap
 }

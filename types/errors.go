@@ -14,4 +14,5 @@ var (
 	ErrResourceTypeNull = errors.New("resource type is null")
 	ErrModuleIdNull     = errors.New("moduleId is null")
 	ErrHashNull         = errors.New("hash is null")
+	ErrSignNull         = errors.New("signature is null")
 )

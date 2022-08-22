@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	RPC_ADDR      string = "https://fullnode.devnet.aptoslabs.com"
+	RPC_ADDR      string = "https://fullnode.devnet.aptoslabs.com/v1"
 	TEST_MNEMONIC        = "abort abort abort abort abort abort abort abort abort abort abort forbid"
 )
 
@@ -522,7 +522,7 @@ func TestAptClient_TransactionByHashOrVersion(t *testing.T) {
 				return
 			}
 
-			transaction, err := c.Transaction(tt.hashOrVersion)
+			transaction, err := c.TransactionByHash(tt.hashOrVersion)
 			if err != nil {
 				t.Logf("transaction by hashOrVersion %s error: %s", tt.name, err.Error())
 				return
@@ -713,7 +713,7 @@ func asyncTxStatus(txHash string) (bool, error) {
 	c, _ := NewAptClient(RPC_ADDR)
 	for {
 		time.Sleep(1 * time.Second)
-		txStatus, err := c.Transaction(txHash)
+		txStatus, err := c.TransactionByHash(txHash)
 		if err != nil {
 			return false, err
 		}
@@ -751,7 +751,7 @@ func getTransferAptParams(account *types.AptAccount, receiptAddr string, amount,
 	error,
 ) {
 	payload := &types.ScriptFunctionPayload{
-		Type:          "script_function_payload",
+		Type:          "entry_function_payload",
 		Function:      "0x1::coin::transfer",
 		TypeArguments: []string{"0x1::aptos_coin::AptosCoin"},
 		Arguments:     []string{receiptAddr, strconv.FormatUint(amount, 10)},
