@@ -10,11 +10,22 @@ const (
 	NoneTy
 )
 
+type BlockWithTxs string
+
+const (
+	FalseTy BlockWithTxs = "false"
+	TrueTy               = "true"
+)
+
 const (
 	AptResourceTy = "0x1::coin::CoinStore<0x1::aptos_coin::AptosCoin>"
 	AptAccountTy  = "0x1::account::Account"
 	Ed25519       = "ed25519_signature"
 )
+
+type NodeHealth struct {
+	Message string `json:"message"`
+}
 
 type LedgerInfo struct {
 	ChainID             int32  `json:"chain_id"`
@@ -23,6 +34,27 @@ type LedgerInfo struct {
 	OldestLedgerVersion string `json:"oldest_ledger_version"`
 	LedgerTimestamp     uint64 `json:"ledger_timestamp,string"`
 	NodeRole            string `json:"node_role"`
+}
+
+type Block struct {
+	BlockHeight    string               `json:"block_height"`
+	BlockHash      string               `json:"block_hash"`
+	BlockTimestamp string               `json:"block_timestamp"`
+	FirstVersion   string               `json:"first_version"`
+	LastVersion    string               `json:"last_version"`
+	Transactions   []TransactionInBlock `json:"transactions"`
+}
+
+type TransactionInBlock struct {
+	Type                    string                `json:"type"`
+	Hash                    string                `json:"hash"`
+	Sender                  string                `json:"sender"`
+	SequenceNumber          string                `json:"sequence_number"`
+	MaxGasAmount            string                `json:"max_gas_amount"`
+	GasUnitPrice            string                `json:"gas_unit_price"`
+	ExpirationTimestampSecs string                `json:"expiration_timestamp_secs"`
+	Payload                 *EntryFunctionPayload `json:"payload"`
+	Signature               *TxSignature          `json:"signature"`
 }
 
 type AptAccount struct {
@@ -89,25 +121,25 @@ type Transaction struct {
 }
 
 type SimulateTx struct {
-	Type                    string                `json:"type"`
-	Version                 string                `json:"version"`
-	Hash                    string                `json:"hash"`
-	StateRootHash           string                `json:"state_root_hash"`
-	EventRootHash           string                `json:"event_root_hash"`
-	GasUsed                 string                `json:"gas_used"`
-	Success                 bool                  `json:"success"`
-	VMStatus                string                `json:"vm_status"`
-	AccumulatorRootHash     string                `json:"accumulator_root_hash"`
-	Changes                 []TxChange            `json:"changes"`
-	Sender                  string                `json:"sender"`
-	SequenceNumber          string                `json:"sequence_number"`
-	MaxGasAmount            string                `json:"max_gas_amount"`
-	GasUnitPrice            string                `json:"gas_unit_price"`
-	ExpirationTimestampSecs string                `json:"expiration_timestamp_secs"`
-	Payload                 ScriptFunctionPayload `json:"payload"`
-	Signature               TxSignature           `json:"signature"`
-	Events                  []TxEvents            `json:"events"`
-	Timestamp               string                `json:"timestamp"`
+	Type                    string               `json:"type"`
+	Version                 string               `json:"version"`
+	Hash                    string               `json:"hash"`
+	StateRootHash           string               `json:"state_root_hash"`
+	EventRootHash           string               `json:"event_root_hash"`
+	GasUsed                 string               `json:"gas_used"`
+	Success                 bool                 `json:"success"`
+	VMStatus                string               `json:"vm_status"`
+	AccumulatorRootHash     string               `json:"accumulator_root_hash"`
+	Changes                 []TxChange           `json:"changes"`
+	Sender                  string               `json:"sender"`
+	SequenceNumber          string               `json:"sequence_number"`
+	MaxGasAmount            string               `json:"max_gas_amount"`
+	GasUnitPrice            string               `json:"gas_unit_price"`
+	ExpirationTimestampSecs string               `json:"expiration_timestamp_secs"`
+	Payload                 EntryFunctionPayload `json:"payload"`
+	Signature               TxSignature          `json:"signature"`
+	Events                  []TxEvents           `json:"events"`
+	Timestamp               string               `json:"timestamp"`
 }
 
 type TxChange struct {
@@ -161,7 +193,7 @@ type TxSignature struct {
 	Signature string `json:"signature"`
 }
 
-type ScriptFunctionPayload struct {
+type EntryFunctionPayload struct {
 	Type          string   `json:"type"`
 	Function      string   `json:"function"`
 	TypeArguments []string `json:"type_arguments"`
@@ -173,6 +205,7 @@ type SigningMessage struct {
 }
 
 type ExceptionMsg struct {
-	Code    int    `json:"code"`
-	Message string `json:"message"`
+	Message       string `json:"message"`
+	Code          string `json:"error_code"`
+	LedgerVersion string `json:"ledger_version"`
 }

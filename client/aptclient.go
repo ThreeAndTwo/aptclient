@@ -7,12 +7,22 @@ import (
 	"fmt"
 	"github.com/threeandtwo/aptclient/types"
 	"math/big"
+	"reflect"
 	"strconv"
 	"strings"
 )
 
 type AptClient struct {
 	rpc string
+}
+
+func (a *AptClient) NodeHealth(durationSecs uint32) (string, error) {
+	rpc := fmt.Sprintf("%s/-/healthy?duration_secs=%d", a.rpc, durationSecs)
+	req, err := a.connClient(rpc, nil).Request(GetTy)
+	if err != nil {
+		return "", err
+	}
+	return req, err
 }
 
 func (a *AptClient) LedgerInfo() (*types.LedgerInfo, error) {
@@ -23,8 +33,9 @@ func (a *AptClient) LedgerInfo() (*types.LedgerInfo, error) {
 		return nil, err
 	}
 
-	if hasExceptionForResp(req) {
-		return nil, fmt.Errorf(req)
+	hasE, errDesc := hasExceptionForResp(req)
+	if hasE {
+		return nil, fmt.Errorf(errDesc)
 	}
 
 	_info := &types.LedgerInfo{}
@@ -32,9 +43,44 @@ func (a *AptClient) LedgerInfo() (*types.LedgerInfo, error) {
 	return _info, err
 }
 
+func (a *AptClient) BlockByHeight(blockHeight uint64, withTxs types.BlockWithTxs) (*types.Block, error) {
+	if withTxs == "" {
+		withTxs = types.FalseTy
+	}
+
+	rpc := fmt.Sprintf("%s/blocks/by_height/%d?with_transactions=%s", a.rpc, blockHeight, withTxs)
+	return a.getBlockInfo(rpc)
+}
+
+func (a *AptClient) BlockByVersion(version uint64, withTxs types.BlockWithTxs) (*types.Block, error) {
+	if withTxs == "" {
+		withTxs = types.FalseTy
+	}
+
+	rpc := fmt.Sprintf("%s/blocks/by_version/%d?with_transactions=%s", a.rpc, version, withTxs)
+	return a.getBlockInfo(rpc)
+}
+
+func (a *AptClient) getBlockInfo(rpc string) (*types.Block, error) {
+	req, err := a.connClient(rpc, nil).Request(GetTy)
+	if err != nil {
+		return nil, err
+	}
+
+	hasE, errDesc := hasExceptionForResp(req)
+	if hasE {
+		return nil, fmt.Errorf(errDesc)
+	}
+
+	_block := &types.Block{}
+	err = json.Unmarshal([]byte(req), _block)
+	return _block, err
+}
+
 func (a *AptClient) Account(address string) (*types.Account, error) {
-	if checkAccount(address) {
-		return nil, types.ErrAddressNull
+	isCheck, err := checkAccount(address)
+	if isCheck {
+		return nil, err
 	}
 
 	rpc := fmt.Sprintf("%s/accounts/%s", a.rpc, address)
@@ -43,8 +89,9 @@ func (a *AptClient) Account(address string) (*types.Account, error) {
 		return nil, err
 	}
 
-	if hasExceptionForResp(req) {
-		return nil, fmt.Errorf(req)
+	hasE, errDesc := hasExceptionForResp(req)
+	if hasE {
+		return nil, fmt.Errorf(errDesc)
 	}
 
 	_account := &types.Account{}
@@ -52,13 +99,21 @@ func (a *AptClient) Account(address string) (*types.Account, error) {
 	return _account, err
 }
 
-func checkAccount(address string) bool {
-	return address == "" || len(address) != 66
+func checkAccount(address string) (bool, error) {
+	if address == "" {
+		return true, types.ErrAddressNull
+	}
+
+	if len(address) != 66 {
+		return true, types.ErrAddressLen
+	}
+	return false, nil
 }
 
 func (a *AptClient) GetBalance(address string) (*big.Int, error) {
-	if checkAccount(address) {
-		return nil, types.ErrAddressNull
+	isCheck, err := checkAccount(address)
+	if isCheck {
+		return nil, err
 	}
 
 	res, err := a.AccountResourceByType(address, types.AptResourceTy, "")
@@ -68,6 +123,10 @@ func (a *AptClient) GetBalance(address string) (*big.Int, error) {
 
 	if res.Data == nil {
 		return nil, types.ErrResourceTypeNull
+	}
+
+	if _, ok := res.Data["coin"]; !ok || reflect.TypeOf(res.Data["coin"]).Kind() != reflect.Map {
+		return nil, types.ErrParsedValue
 	}
 
 	v := res.Data["coin"].(map[string]interface{})
@@ -80,8 +139,9 @@ func (a *AptClient) GetBalance(address string) (*big.Int, error) {
 }
 
 func (a *AptClient) GetNonce(address string) (uint64, error) {
-	if checkAccount(address) {
-		return 0, types.ErrAddressNull
+	isCheck, err := checkAccount(address)
+	if isCheck {
+		return 0, err
 	}
 
 	res, err := a.AccountResourceByType(address, types.AptAccountTy, "")
@@ -93,13 +153,18 @@ func (a *AptClient) GetNonce(address string) (uint64, error) {
 		return 0, types.ErrResourceTypeNull
 	}
 
+	if _, ok := res.Data["sequence_number"]; !ok || reflect.TypeOf(res.Data["sequence_number"]).Kind() != reflect.String {
+		return 0, types.ErrParsedValue
+	}
+
 	nonce := res.Data["sequence_number"].(string)
 	return strconv.ParseUint(nonce, 10, 64)
 }
 
 func (a *AptClient) AccountResources(address, version string) ([]*types.AccountResource, error) {
-	if checkAccount(address) {
-		return nil, types.ErrAddressNull
+	isCheck, err := checkAccount(address)
+	if isCheck {
+		return nil, err
 	}
 
 	rpc := ""
@@ -115,8 +180,9 @@ func (a *AptClient) AccountResources(address, version string) ([]*types.AccountR
 		return nil, err
 	}
 
-	if hasExceptionForResp(req) {
-		return nil, fmt.Errorf(req)
+	hasE, errDesc := hasExceptionForResp(req)
+	if hasE {
+		return nil, fmt.Errorf(errDesc)
 	}
 
 	err = json.Unmarshal([]byte(req), &_as)
@@ -124,8 +190,9 @@ func (a *AptClient) AccountResources(address, version string) ([]*types.AccountR
 }
 
 func (a *AptClient) AccountResourceByType(address, resourceType, version string) (*types.AccountResource, error) {
-	if checkAccount(address) {
-		return nil, types.ErrAddressNull
+	isCheck, err := checkAccount(address)
+	if isCheck {
+		return nil, err
 	}
 
 	if resourceType == "" {
@@ -145,8 +212,9 @@ func (a *AptClient) AccountResourceByType(address, resourceType, version string)
 		return nil, err
 	}
 
-	if hasExceptionForResp(req) {
-		return nil, fmt.Errorf(req)
+	hasE, errDesc := hasExceptionForResp(req)
+	if hasE {
+		return nil, fmt.Errorf(errDesc)
 	}
 
 	err = json.Unmarshal([]byte(req), &_as)
@@ -154,10 +222,10 @@ func (a *AptClient) AccountResourceByType(address, resourceType, version string)
 }
 
 func (a *AptClient) AccountModules(address, version string) ([]*types.AccountModule, error) {
-	if checkAccount(address) {
-		return nil, types.ErrAddressNull
+	isCheck, err := checkAccount(address)
+	if isCheck {
+		return nil, err
 	}
-
 	rpc := ""
 	if version == "" {
 		rpc = fmt.Sprintf("%s/accounts/%s/modules", a.rpc, address)
@@ -171,28 +239,30 @@ func (a *AptClient) AccountModules(address, version string) ([]*types.AccountMod
 		return nil, err
 	}
 
-	if hasExceptionForResp(req) {
-		return nil, fmt.Errorf(req)
+	hasE, errDesc := hasExceptionForResp(req)
+	if hasE {
+		return nil, fmt.Errorf(errDesc)
 	}
 
 	err = json.Unmarshal([]byte(req), &_am)
 	return _am, err
 }
 
-func (a *AptClient) AccountModuleById(address, moduleId, version string) (*types.AccountModule, error) {
-	if checkAccount(address) {
-		return nil, types.ErrAddressNull
+func (a *AptClient) AccountModuleById(address, moduleName, version string) (*types.AccountModule, error) {
+	isCheck, err := checkAccount(address)
+	if isCheck {
+		return nil, err
 	}
 
-	if moduleId == "" {
+	if moduleName == "" {
 		return nil, types.ErrModuleIdNull
 	}
 
 	rpc := ""
 	if version == "" {
-		rpc = fmt.Sprintf("%s/accounts/%s/module/%s", a.rpc, address, moduleId)
+		rpc = fmt.Sprintf("%s/accounts/%s/module/%s", a.rpc, address, moduleName)
 	} else {
-		rpc = fmt.Sprintf("%s/accounts/%s/module/%s?version=%s", a.rpc, address, moduleId, version)
+		rpc = fmt.Sprintf("%s/accounts/%s/module/%s?version=%s", a.rpc, address, moduleName, version)
 	}
 
 	var _am *types.AccountModule
@@ -201,8 +271,9 @@ func (a *AptClient) AccountModuleById(address, moduleId, version string) (*types
 		return nil, err
 	}
 
-	if hasExceptionForResp(req) {
-		return nil, fmt.Errorf(req)
+	hasE, errDesc := hasExceptionForResp(req)
+	if hasE {
+		return nil, fmt.Errorf(errDesc)
 	}
 
 	err = json.Unmarshal([]byte(req), &_am)
@@ -226,8 +297,9 @@ func (a *AptClient) Transactions(limit, start int) ([]*types.Transaction, error)
 		return nil, err
 	}
 
-	if hasExceptionForResp(req) {
-		return nil, fmt.Errorf(req)
+	hasE, errDesc := hasExceptionForResp(req)
+	if hasE {
+		return nil, fmt.Errorf(errDesc)
 	}
 
 	err = json.Unmarshal([]byte(req), &txs)
@@ -243,8 +315,9 @@ func (a *AptClient) TransactionsByAccount(address string, limit, start int) ([]*
 		start = 1
 	}
 
-	if checkAccount(address) {
-		return nil, types.ErrAddressNull
+	isCheck, err := checkAccount(address)
+	if isCheck {
+		return nil, err
 	}
 
 	rpc := fmt.Sprintf("%s/accounts/%s/transactions?limit=%d&start=%d", a.rpc, address, limit, start)
@@ -255,8 +328,9 @@ func (a *AptClient) TransactionsByAccount(address string, limit, start int) ([]*
 		return nil, err
 	}
 
-	if hasExceptionForResp(req) {
-		return nil, fmt.Errorf(req)
+	hasE, errDesc := hasExceptionForResp(req)
+	if hasE {
+		return nil, fmt.Errorf(errDesc)
 	}
 
 	err = json.Unmarshal([]byte(req), &txs)
@@ -264,29 +338,29 @@ func (a *AptClient) TransactionsByAccount(address string, limit, start int) ([]*
 }
 
 func (a *AptClient) TransactionByHash(hash string) (*types.Transaction, error) {
-	rpc := fmt.Sprintf("%s/transactions/by_hash", a.rpc)
-	return a.transaction(rpc, hash)
-}
-
-func (a *AptClient) TransactionByVersion(version string) (*types.Transaction, error) {
-	rpc := fmt.Sprintf("%s/transactions/by_version", a.rpc)
-	return a.transaction(rpc, version)
-}
-
-func (a *AptClient) transaction(rpc, hashOrVersion string) (*types.Transaction, error) {
-	if hashOrVersion == "" {
+	if hash == "" {
 		return nil, types.ErrHashNull
 	}
-	_rpc := fmt.Sprintf("%s/%s", rpc, hashOrVersion)
 
+	rpc := fmt.Sprintf("%s/transactions/by_hash/%s", a.rpc, hash)
+	return a.transaction(rpc)
+}
+
+func (a *AptClient) TransactionByVersion(version uint64) (*types.Transaction, error) {
+	rpc := fmt.Sprintf("%s/transactions/by_version/%d", a.rpc, version)
+	return a.transaction(rpc)
+}
+
+func (a *AptClient) transaction(rpc string) (*types.Transaction, error) {
 	var tx *types.Transaction
-	req, err := a.connClient(_rpc, nil).Request(GetTy)
+	req, err := a.connClient(rpc, nil).Request(GetTy)
 	if err != nil {
 		return nil, err
 	}
 
-	if hasExceptionForResp(req) {
-		return nil, fmt.Errorf(req)
+	hasE, errDesc := hasExceptionForResp(req)
+	if hasE {
+		return nil, fmt.Errorf(errDesc)
 	}
 
 	err = json.Unmarshal([]byte(req), &tx)
@@ -294,6 +368,10 @@ func (a *AptClient) transaction(rpc, hashOrVersion string) (*types.Transaction, 
 }
 
 func (a *AptClient) SignMessage(unSigTx *types.UnsignedTx) (*types.SigningMessage, error) {
+	if unSigTx.Payload == nil {
+		return nil, types.ErrPayloadNull
+	}
+
 	rpc := fmt.Sprintf("%s/transactions/encode_submission", a.rpc)
 	unsignedMap := initUnSigMap(unSigTx)
 
@@ -307,9 +385,11 @@ func (a *AptClient) SignMessage(unSigTx *types.UnsignedTx) (*types.SigningMessag
 		return nil, types.ErrSignNull
 	}
 
-	//req = strings.Trim(req, `"`)
-
 	sigMsg.Message = strings.Trim(req, `"`)
+	if sigMsg.Message[0:2] != "0x" {
+		return nil, fmt.Errorf(req)
+	}
+
 	return sigMsg, err
 }
 
@@ -346,8 +426,9 @@ func (a *AptClient) SubmitTx(signedTx *types.SignedTx) (*types.Transaction, erro
 		return nil, err
 	}
 
-	if hasExceptionForResp(req) {
-		return nil, fmt.Errorf(req)
+	hasE, errDesc := hasExceptionForResp(req)
+	if hasE {
+		return nil, fmt.Errorf(errDesc)
 	}
 
 	err = json.Unmarshal([]byte(req), &tx)
@@ -364,8 +445,9 @@ func (a *AptClient) SimulateTx(signedTx *types.SignedTx) ([]*types.SimulateTx, e
 		return nil, err
 	}
 
-	if hasExceptionForResp(req) {
-		return nil, fmt.Errorf(req)
+	hasE, errDesc := hasExceptionForResp(req)
+	if hasE {
+		return nil, fmt.Errorf(errDesc)
 	}
 
 	err = json.Unmarshal([]byte(req), &tx)
@@ -398,17 +480,20 @@ func (a *AptClient) connClient(url string, params map[string]interface{}) *Net {
 	return NewNet(url, initHeader(), params)
 }
 
-func hasExceptionForResp(msg string) bool {
+func hasExceptionForResp(msg string) (bool, string) {
 	exMsg := &types.ExceptionMsg{}
+	errMsg := ""
 
 	if json.Unmarshal([]byte(msg), exMsg) != nil {
-		return false
+		return false, ""
 	}
 
-	if exMsg.Code == 0 {
-		return false
+	if exMsg.Message == "" {
+		return false, ""
 	}
-	return true
+
+	errMsg = types.ErrRequestRpc.Error() + ": " + exMsg.Message
+	return true, errMsg
 }
 
 func initSigTx(signedTx *types.SignedTx) map[string]interface{} {
@@ -417,7 +502,6 @@ func initSigTx(signedTx *types.SignedTx) map[string]interface{} {
 	signedMap["sequence_number"] = fmt.Sprintf("%d", signedTx.SequenceNumber)
 	signedMap["max_gas_amount"] = fmt.Sprintf("%d", signedTx.MaxGasAmount)
 	signedMap["gas_unit_price"] = fmt.Sprintf("%d", signedTx.GasUnitPrice)
-	//signedMap["gas_currency_code"] = signedTx.GasCurrencyCode
 	signedMap["expiration_timestamp_secs"] = fmt.Sprintf("%d", signedTx.ExpirationTime)
 	signedMap["payload"] = signedTx.Payload
 	signedMap["signature"] = signedTx.Signature
@@ -430,9 +514,8 @@ func initUnSigMap(unSigTx *types.UnsignedTx) map[string]interface{} {
 	unsignedMap["sequence_number"] = fmt.Sprintf("%d", unSigTx.SequenceNumber)
 	unsignedMap["max_gas_amount"] = fmt.Sprintf("%d", unSigTx.MaxGasAmount)
 	unsignedMap["gas_unit_price"] = fmt.Sprintf("%d", unSigTx.GasUnitPrice)
-	//unsignedMap["gas_currency_code"] = unSigTx.GasCurrencyCode
 	unsignedMap["expiration_timestamp_secs"] = fmt.Sprintf("%d", unSigTx.ExpirationTime)
 	unsignedMap["payload"] = unSigTx.Payload
-	//unsignedMap["secondary_signers"] = []string{unSigTx.Sender}
+	//unsignedMap["secondary_signers"] = []string{unSigTx.Sender} // TODO: check
 	return unsignedMap
 }

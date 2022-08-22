@@ -11,8 +11,7 @@ import (
 )
 
 const (
-	RPC_ADDR      string = "https://fullnode.devnet.aptoslabs.com/v1"
-	TEST_MNEMONIC        = "abort abort abort abort abort abort abort abort abort abort abort forbid"
+	RPC_ADDR string = "https://fullnode.devnet.aptoslabs.com/v1"
 )
 
 func TestNewAptClient(t *testing.T) {
@@ -46,6 +45,43 @@ func TestNewAptClient(t *testing.T) {
 	}
 }
 
+func TestAptClient_NodeHealth(t *testing.T) {
+	tests := []struct {
+		name string
+		rpc  string
+		secs uint32
+	}{
+		{
+			name: "test node health for aptos, duration is 0",
+			rpc:  RPC_ADDR,
+			secs: 0,
+		},
+		{
+			name: "secs > 0",
+			rpc:  RPC_ADDR,
+			secs: 10,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c, err := NewAptClient(tt.rpc)
+			if err != nil {
+				t.Logf("new apt client error: %s", err)
+				return
+			}
+
+			healthDesc, err := c.NodeHealth(tt.secs)
+			if err != nil {
+				t.Logf("node health is error: %s", err.Error())
+				return
+			}
+
+			t.Logf("message: %s", healthDesc)
+		})
+	}
+}
+
 func TestAptClient_LedgerInfo(t *testing.T) {
 	tests := []struct {
 		name string
@@ -70,7 +106,105 @@ func TestAptClient_LedgerInfo(t *testing.T) {
 				t.Logf("get ledgerInfo: %s", err)
 				return
 			}
-			t.Logf("ledgerInfo: %v", info)
+
+			b, _ := json.Marshal(info)
+			t.Logf("resources: %s", string(b))
+		})
+	}
+}
+
+func TestAptClient_BlockByHeight(t *testing.T) {
+	tests := []struct {
+		name        string
+		blockHeight uint64
+		withTxs     types.BlockWithTxs
+	}{
+		{
+			name:        "blockHeight <= 0",
+			blockHeight: 0,
+			withTxs:     types.FalseTy,
+		},
+		{
+			name:        "block had been confirmed",
+			blockHeight: 11111,
+			withTxs:     types.FalseTy,
+		},
+		{
+			name:        "block had been confirmed and withTxs is True",
+			blockHeight: 11111,
+			withTxs:     types.TrueTy,
+		},
+		{
+			name:        "block will be minted",
+			blockHeight: 1000000000000000,
+			withTxs:     types.FalseTy,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c, err := NewAptClient(RPC_ADDR)
+			if err != nil {
+				t.Logf("new apt client error: %s", err)
+				return
+			}
+
+			block, err := c.BlockByHeight(tt.blockHeight, tt.withTxs)
+			if err != nil {
+				t.Logf("get block info error: %s", err.Error())
+				return
+			}
+
+			b, _ := json.Marshal(block)
+			t.Logf("resources: %s", string(b))
+		})
+	}
+}
+
+func TestAptClient_BlockByVersion(t *testing.T) {
+	tests := []struct {
+		name    string
+		version uint64
+		withTxs types.BlockWithTxs
+	}{
+		{
+			name:    "version == 0",
+			version: 0,
+			withTxs: types.TrueTy,
+		},
+		{
+			name:    "version for block had been confirmed",
+			version: 11111,
+			withTxs: types.FalseTy,
+		},
+		{
+			name:    "version for block had been confirmed and withTxs is true",
+			version: 11111,
+			withTxs: types.TrueTy,
+		},
+		{
+			name:    "version for block will be minted",
+			version: 1000000000000000,
+			withTxs: types.TrueTy,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c, err := NewAptClient(RPC_ADDR)
+			if err != nil {
+				t.Logf("new apt client error: %s", err)
+				return
+			}
+
+			block, err := c.BlockByVersion(tt.version, tt.withTxs)
+			if err != nil {
+				t.Logf("get block info error: %s", err.Error())
+				return
+			}
+
+			b, _ := json.Marshal(block)
+			t.Logf("resources: %s", string(b))
 		})
 	}
 }
@@ -157,6 +291,47 @@ func TestAptClient_Balance(t *testing.T) {
 	}
 }
 
+func TestAptClient_GetNonce(t *testing.T) {
+	tests := []struct {
+		name    string
+		rpc     string
+		address string
+	}{
+		{
+			name:    "test balance",
+			rpc:     RPC_ADDR,
+			address: "0x593f8077f72f14e702f3b0fc0c362119b7c8c060282c3fb6e52311f525499f1a",
+		},
+		{
+			name:    "address is null",
+			rpc:     RPC_ADDR,
+			address: "",
+		},
+		{
+			name:    "address length error",
+			rpc:     RPC_ADDR,
+			address: "0x593f8077f72f14e702f3b0fc0c362119b7c8c060282c3fb6e52311f525499f1",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c, err := NewAptClient(tt.rpc)
+			if err != nil {
+				t.Logf("new apt client error: %s", err)
+				return
+
+			}
+			info, err := c.GetNonce(tt.address)
+			if err != nil {
+				t.Logf("get balance Info error: %s", err)
+				return
+			}
+			t.Logf("nonce %d for %s", info, tt.address)
+		})
+	}
+}
+
 func TestAptClient_AccountResources(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -167,20 +342,20 @@ func TestAptClient_AccountResources(t *testing.T) {
 		{
 			name:    "normal account",
 			rpc:     RPC_ADDR,
-			address: "0x8b71b7d40de6ab3feea38c668bb3eba7152f6d45208b6d864c8587202e4d0c97",
-			version: "180454",
+			address: "0x593f8077f72f14e702f3b0fc0c362119b7c8c060282c3fb6e52311f525499f1a",
+			version: "7935073",
 		},
 		{
 			name:    "version is null",
 			rpc:     RPC_ADDR,
-			address: "0x8b71b7d40de6ab3feea38c668bb3eba7152f6d45208b6d864c8587202e4d0c97",
+			address: "0x593f8077f72f14e702f3b0fc0c362119b7c8c060282c3fb6e52311f525499f1a",
 			version: "",
 		},
 		{
 			name:    "address is null",
 			rpc:     RPC_ADDR,
 			address: "",
-			version: "7913704",
+			version: "7920450",
 		},
 	}
 
@@ -215,9 +390,9 @@ func TestAptClient_AccountResourceByType(t *testing.T) {
 		{
 			name:       "normal",
 			rpc:        RPC_ADDR,
-			address:    "0x8b71b7d40de6ab3feea38c668bb3eba7152f6d45208b6d864c8587202e4d0c97",
+			address:    "0x593f8077f72f14e702f3b0fc0c362119b7c8c060282c3fb6e52311f525499f1a",
 			resourceTy: "0x1::account::Account",
-			version:    "180454",
+			version:    "7920450",
 		},
 		{
 			name:       "version is null",
@@ -231,14 +406,14 @@ func TestAptClient_AccountResourceByType(t *testing.T) {
 			rpc:        RPC_ADDR,
 			address:    "0x593f8077f72f14e702f3b0fc0c362119b7c8c060282c3fb6e52311f525499f1a",
 			resourceTy: "",
-			version:    "7913704",
+			version:    "7920450",
 		},
 		{
 			name:       "address is null",
 			rpc:        RPC_ADDR,
 			address:    "",
 			resourceTy: "0x1::account::Account",
-			version:    "7913704",
+			version:    "7920450",
 		},
 	}
 
@@ -272,19 +447,19 @@ func TestAptClient_AccountModules(t *testing.T) {
 		{
 			name:    "normal",
 			rpc:     RPC_ADDR,
-			address: "0x8b71b7d40de6ab3feea38c668bb3eba7152f6d45208b6d864c8587202e4d0c97",
-			version: "180454",
+			address: "0x593f8077f72f14e702f3b0fc0c362119b7c8c060282c3fb6e52311f525499f1a",
+			version: "7920450",
 		},
 		{
 			name:    "address is null",
 			rpc:     RPC_ADDR,
 			address: "",
-			version: "7913704",
+			version: "7920450",
 		},
 		{
 			name:    "version is null",
 			rpc:     RPC_ADDR,
-			address: "0x8b71b7d40de6ab3feea38c668bb3eba7152f6d45208b6d864c8587202e4d0c97",
+			address: "0x593f8077f72f14e702f3b0fc0c362119b7c8c060282c3fb6e52311f525499f1a",
 			version: "",
 		},
 	}
@@ -320,28 +495,28 @@ func TestAptClient_AccountModuleById(t *testing.T) {
 		{
 			name:     "normal",
 			rpc:      RPC_ADDR,
-			address:  "0x8b71b7d40de6ab3feea38c668bb3eba7152f6d45208b6d864c8587202e4d0c97",
-			moduleId: "",
-			version:  "180454",
+			address:  "0x593f8077f72f14e702f3b0fc0c362119b7c8c060282c3fb6e52311f525499f1a",
+			moduleId: "coin",
+			version:  "7920450",
 		},
 		{
 			name:     "address is null",
 			rpc:      RPC_ADDR,
 			address:  "",
 			moduleId: "aptos_coin",
-			version:  "180454",
+			version:  "7920450",
 		},
 		{
 			name:     "moduleId is null",
 			rpc:      RPC_ADDR,
-			address:  "0x8b71b7d40de6ab3feea38c668bb3eba7152f6d45208b6d864c8587202e4d0c97",
+			address:  "0x593f8077f72f14e702f3b0fc0c362119b7c8c060282c3fb6e52311f525499f1a",
 			moduleId: "",
-			version:  "180454",
+			version:  "7920450",
 		},
 		{
 			name:     "version is null",
 			rpc:      RPC_ADDR,
-			address:  "0x8b71b7d40de6ab3feea38c668bb3eba7152f6d45208b6d864c8587202e4d0c97",
+			address:  "0x593f8077f72f14e702f3b0fc0c362119b7c8c060282c3fb6e52311f525499f1a",
 			moduleId: "aptos_coin",
 			version:  "",
 		},
@@ -491,26 +666,21 @@ func TestAptClient_TransactionsByAccount(t *testing.T) {
 	}
 }
 
-func TestAptClient_TransactionByHashOrVersion(t *testing.T) {
+func TestAptClient_TransactionByHash(t *testing.T) {
 	tests := []struct {
-		name          string
-		rpc           string
-		hashOrVersion string
+		name string
+		rpc  string
+		hash string
 	}{
 		{
-			name:          "normal by version",
-			rpc:           RPC_ADDR,
-			hashOrVersion: "377511",
+			name: "normal by hash",
+			rpc:  RPC_ADDR,
+			hash: "0x4cd3498f5f6dc90f2ef2728d0d0bf3b2a2edc2f21f3607b6f33e3057e8660bde",
 		},
 		{
-			name:          "normal by hash",
-			rpc:           RPC_ADDR,
-			hashOrVersion: "0x7475007900682cd9f0d27b98c678be504defbd2e706bfcc1ee9aa3cfbf1a0851",
-		},
-		{
-			name:          "params null",
-			rpc:           RPC_ADDR,
-			hashOrVersion: "",
+			name: "params null",
+			rpc:  RPC_ADDR,
+			hash: "",
 		},
 	}
 
@@ -522,7 +692,45 @@ func TestAptClient_TransactionByHashOrVersion(t *testing.T) {
 				return
 			}
 
-			transaction, err := c.TransactionByHash(tt.hashOrVersion)
+			transaction, err := c.TransactionByHash(tt.hash)
+			if err != nil {
+				t.Logf("transaction by hashOrVersion %s error: %s", tt.name, err.Error())
+				return
+			}
+
+			b, _ := json.Marshal(transaction)
+			t.Logf("transaction: %s", string(b))
+		})
+	}
+}
+
+func TestAptClient_TransactionByVersion(t *testing.T) {
+	tests := []struct {
+		name    string
+		rpc     string
+		version uint64
+	}{
+		{
+			name:    "normal by hash",
+			rpc:     RPC_ADDR,
+			version: 7935073,
+		},
+		{
+			name:    "params null",
+			rpc:     RPC_ADDR,
+			version: 0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c, err := NewAptClient(tt.rpc)
+			if err != nil {
+				t.Logf("new apt client error: %s", err)
+				return
+			}
+
+			transaction, err := c.TransactionByVersion(tt.version)
 			if err != nil {
 				t.Logf("transaction by hashOrVersion %s error: %s", tt.name, err.Error())
 				return
@@ -545,12 +753,17 @@ func TestAptClient_SignMessage(t *testing.T) {
 			rpc:  RPC_ADDR,
 			unSigTx: &types.UnsignedTx{
 				Sender:          "0x593f8077f72f14e702f3b0fc0c362119b7c8c060282c3fb6e52311f525499f1a",
-				SequenceNumber:  4,
-				MaxGasAmount:    0,
-				GasUnitPrice:    0,
+				SequenceNumber:  5,
+				MaxGasAmount:    10,
+				GasUnitPrice:    1,
 				GasCurrencyCode: "",
 				ExpirationTime:  uint64(time.Now().Unix()) + uint64(600),
-				Payload:         nil,
+				Payload: &types.EntryFunctionPayload{
+					Type:          "entry_function_payload",
+					Function:      "0x1::coin::transfer",
+					TypeArguments: []string{"0x1::aptos_coin::AptosCoin"},
+					Arguments:     []string{"0x6d829df49edf618de9002d16b03118f50cb0b22cb56901349720a07f6a5b10c5", strconv.FormatUint(100, 10)},
+				},
 			},
 		},
 	}
@@ -750,7 +963,7 @@ func getTransferAptParams(account *types.AptAccount, receiptAddr string, amount,
 	*types.UnsignedTx,
 	error,
 ) {
-	payload := &types.ScriptFunctionPayload{
+	payload := &types.EntryFunctionPayload{
 		Type:          "entry_function_payload",
 		Function:      "0x1::coin::transfer",
 		TypeArguments: []string{"0x1::aptos_coin::AptosCoin"},
