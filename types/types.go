@@ -32,6 +32,8 @@ type LedgerInfo struct {
 	Epoch               string `json:"epoch"`
 	LedgerVersion       uint   `json:"ledger_version,string"`
 	OldestLedgerVersion string `json:"oldest_ledger_version"`
+	BlockHeight         string `json:"block_height"`
+	OldestBlockHeight   string `json:"oldest_block_height"`
 	LedgerTimestamp     uint64 `json:"ledger_timestamp,string"`
 	NodeRole            string `json:"node_role"`
 }
