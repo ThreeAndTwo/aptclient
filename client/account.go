@@ -5,11 +5,13 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"strings"
+
 	"github.com/mr-tron/base58"
+	"github.com/threeandtwo/aptclient/hexutil"
 	"github.com/threeandtwo/aptclient/key_manager"
 	"github.com/threeandtwo/aptclient/types"
 	"golang.org/x/crypto/sha3"
-	"strings"
 )
 
 type AptAccount struct {
@@ -39,8 +41,31 @@ func IsMnemonic(words string) bool {
 	return l == 12 || l == 15 || l == 18 || l == 21 || l == 24
 }
 
+func (a *AptAccount) base58PrvKey2Account(prvKey string) (ed25519.PrivateKey, error) {
+	res, err := base58.Decode(prvKey)
+	if err != nil {
+		return nil, err
+	}
+	return ed25519.NewKeyFromSeed(res[:32]), nil
+}
+
+func (a *AptAccount) hexPrvKey2Account(prvKey string) (ed25519.PrivateKey, error) {
+	res, err := hexutil.Decode(prvKey)
+	if err != nil {
+		return nil, err
+	}
+	return ed25519.NewKeyFromSeed(res[:32]), nil
+}
+
 func (a *AptAccount) prvKey2Account(prvKey string) (*types.AptAccount, error) {
-	privateKey, err := PrivateKey2Bytes(prvKey)
+	var privateKey ed25519.PrivateKey
+	var err error
+
+	if strings.HasPrefix("0x", prvKey) || strings.HasPrefix("0X", prvKey) {
+		privateKey, err = a.hexPrvKey2Account(prvKey)
+	} else {
+		privateKey, err = a.base58PrvKey2Account(prvKey)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -136,14 +161,6 @@ func (a *AptAccount) GetAptAccount(index int) (*types.AptAccount, error) {
 
 func pubKeyBytes(prvKey ed25519.PrivateKey) []byte {
 	return prvKey.Public().(ed25519.PublicKey)
-}
-
-func PrivateKey2Bytes(prvKey string) (ed25519.PrivateKey, error) {
-	res, err := base58.Decode(prvKey)
-	if err != nil {
-		return nil, err
-	}
-	return ed25519.NewKeyFromSeed(res[:32]), nil
 }
 
 func PrivateKey2Str(prvKey ed25519.PrivateKey) string {
