@@ -553,8 +553,8 @@ func TestAptClient_Transactions(t *testing.T) {
 	tests := []struct {
 		name  string
 		rpc   string
-		limit int
-		start int
+		limit uint16
+		start uint64
 	}{
 		{
 			name:  "normal",
@@ -565,20 +565,20 @@ func TestAptClient_Transactions(t *testing.T) {
 		{
 			name:  "limit < 0",
 			rpc:   RPC_ADDR,
-			limit: -1,
+			limit: 0,
 			start: 1,
 		},
 		{
 			name:  "start < 0",
 			rpc:   RPC_ADDR,
 			limit: 25,
-			start: -1,
+			start: 1,
 		},
 		{
 			name:  "limit < 0 && start < 0",
 			rpc:   RPC_ADDR,
-			limit: -1,
-			start: -2,
+			limit: 0,
+			start: 2,
 		},
 	}
 
@@ -607,8 +607,8 @@ func TestAptClient_TransactionsByAccount(t *testing.T) {
 		name    string
 		rpc     string
 		address string
-		limit   int
-		start   int
+		limit   uint16
+		start   uint64
 	}{
 		{
 			name:    "normal",
@@ -628,7 +628,7 @@ func TestAptClient_TransactionsByAccount(t *testing.T) {
 			name:    "limit < 0",
 			rpc:     RPC_ADDR,
 			address: "0x8b71b7d40de6ab3feea38c668bb3eba7152f6d45208b6d864c8587202e4d0c97",
-			limit:   -1,
+			limit:   0,
 			start:   0,
 		},
 		{
@@ -636,14 +636,14 @@ func TestAptClient_TransactionsByAccount(t *testing.T) {
 			rpc:     RPC_ADDR,
 			address: "0x8b71b7d40de6ab3feea38c668bb3eba7152f6d45208b6d864c8587202e4d0c97",
 			limit:   25,
-			start:   -1,
+			start:   1,
 		},
 		{
 			name:    "limit < 0 && start < 0",
 			rpc:     RPC_ADDR,
 			address: "0x8b71b7d40de6ab3feea38c668bb3eba7152f6d45208b6d864c8587202e4d0c97",
-			limit:   -1,
-			start:   -1,
+			limit:   0,
+			start:   1,
 		},
 	}
 
@@ -917,6 +917,101 @@ func TestAptClient_SimulateTx(t *testing.T) {
 
 			b, _ := json.Marshal(tx)
 			t.Logf("simulate transaction result: %s", string(b))
+		})
+	}
+}
+
+func TestAptClient_EstimateGasPrice(t *testing.T) {
+	c, err := NewAptClient(RPC_ADDR)
+	if err != nil {
+		t.Logf("new apt client error: %s", err)
+		return
+	}
+
+	gasPrice, err := c.EstimateGasPrice()
+	if err != nil {
+		t.Logf("get estimate gas price error: %s", err.Error())
+		return
+	}
+	t.Logf("gas price result: %d", gasPrice)
+}
+
+func TestAptClient_GetEventsByKey(t *testing.T) {
+	tests := []struct {
+		name  string
+		key   string
+		limit uint16
+		start uint64
+	}{
+		{
+			name:  "normal",
+			key:   "",
+			limit: 25,
+			start: 1,
+		},
+		{
+			name:  "key is null",
+			key:   "",
+			limit: 25,
+			start: 1,
+		},
+	}
+
+	c, err := NewAptClient(RPC_ADDR)
+	if err != nil {
+		t.Logf("new apt client error: %s", err)
+		return
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			events, errEvent := c.GetEventsByKey(tt.key, tt.limit, tt.start)
+			if errEvent != nil {
+				t.Logf("get estimate gas price error: %s", errEvent.Error())
+				return
+			}
+
+			b, _ := json.Marshal(events)
+			t.Logf("events result: %s", string(b))
+		})
+	}
+}
+
+func TestAptClient_GetEventsByHandle(t *testing.T) {
+	tests := []struct {
+		name      string
+		address   string
+		handle    string
+		fieldName string
+		limit     uint16
+		start     uint64
+	}{
+		{
+			name:      "normal",
+			address:   "0x8b71b7d40de6ab3feea38c668bb3eba7152f6d45208b6d864c8587202e4d0c97",
+			handle:    "bbb",
+			fieldName: "aaa",
+			limit:     25,
+			start:     1,
+		},
+	}
+
+	c, err := NewAptClient(RPC_ADDR)
+	if err != nil {
+		t.Logf("new apt client error: %s", err)
+		return
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			events, errEvent := c.GetEventsByHandle(tt.address, tt.handle, tt.fieldName, tt.limit, tt.start)
+			if errEvent != nil {
+				t.Logf("get estimate gas price error: %s", errEvent.Error())
+				return
+			}
+
+			b, _ := json.Marshal(events)
+			t.Logf("events result: %s", string(b))
 		})
 	}
 }

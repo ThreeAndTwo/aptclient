@@ -280,7 +280,7 @@ func (a *AptClient) AccountModuleById(address, moduleName, version string) (*typ
 	return _am, err
 }
 
-func (a *AptClient) Transactions(limit, start int) ([]*types.Transaction, error) {
+func (a *AptClient) Transactions(limit uint16, start uint64) ([]*types.Transaction, error) {
 	if limit <= 0 {
 		limit = 25
 	}
@@ -306,7 +306,7 @@ func (a *AptClient) Transactions(limit, start int) ([]*types.Transaction, error)
 	return txs, err
 }
 
-func (a *AptClient) TransactionsByAccount(address string, limit, start int) ([]*types.Transaction, error) {
+func (a *AptClient) TransactionsByAccount(address string, limit uint16, start uint64) ([]*types.Transaction, error) {
 	if limit <= 0 {
 		limit = 25
 	}
@@ -454,6 +454,90 @@ func (a *AptClient) SimulateTx(signedTx *types.SignedTx) ([]*types.SimulateTx, e
 	return tx, err
 }
 
+func (a *AptClient) SubmitBatchTx(signedTxs []*types.SignedTx) error {
+	rpc := fmt.Sprintf("%s/transactions/batch", a.rpc)
+
+	var batchedSignedTx map[string]interface{}
+	for k, signedTx := range signedTxs {
+		signedMap := initSigTx(signedTx)
+		batchedSignedTx[strconv.Itoa(k)] = signedMap
+	}
+
+	var tx []*types.SimulateTx
+	req, err := a.connClient(rpc, batchedSignedTx).Request(PostTy)
+	if err != nil {
+		return err
+	}
+
+	hasE, errDesc := hasExceptionForResp(req)
+	if hasE {
+		return fmt.Errorf(errDesc)
+	}
+
+	err = json.Unmarshal([]byte(req), &tx)
+	return err
+}
+
+func (a *AptClient) EstimateGasPrice() (uint64, error) {
+	rpc := fmt.Sprintf("%s/estimate_gas_price", a.rpc)
+	req, err := a.connClient(rpc, nil).Request(GetTy)
+	if err != nil {
+		return 0, err
+	}
+
+	hasE, errDesc := hasExceptionForResp(req)
+	if hasE {
+		return 0, fmt.Errorf(errDesc)
+	}
+
+	var gp types.EstimateGasPrice
+	err = json.Unmarshal([]byte(req), &gp)
+	return gp.GasEstimate, err
+}
+
+func (a *AptClient) GetEventsByKey(key string, limit uint16, start uint64) ([]*types.Event, error) {
+	if key == "" {
+		return nil, fmt.Errorf("key should be null")
+	}
+
+	rpc := fmt.Sprintf("%s/events/%s?limit=%d&start=%d", a.rpc, key, limit, start)
+
+	req, err := a.connClient(rpc, nil).Request(GetTy)
+	if err != nil {
+		return nil, err
+	}
+
+	hasE, errDesc := hasExceptionForResp(req)
+	if hasE {
+		return nil, fmt.Errorf(errDesc)
+	}
+
+	var events []*types.Event
+	err = json.Unmarshal([]byte(req), &events)
+	return events, err
+}
+
+func (a *AptClient) GetEventsByHandle(address, handle, fieldName string, limit uint16, start uint64) ([]*types.Event, error) {
+	if address == "" || handle == "" || fieldName == "" {
+		return nil, fmt.Errorf("address | handle | fieldName is null, plz check it")
+	}
+
+	rpc := fmt.Sprintf("%s/accounts/%s/events/%s/%s?limit=%d&start=%d", a.rpc, address, handle, fieldName, limit, start)
+	req, err := a.connClient(rpc, nil).Request(GetTy)
+	if err != nil {
+		return nil, err
+	}
+
+	hasE, errDesc := hasExceptionForResp(req)
+	if hasE {
+		return nil, fmt.Errorf(errDesc)
+	}
+
+	var events []*types.Event
+	err = json.Unmarshal([]byte(req), &events)
+	return events, err
+}
+
 func NewAptClient(rpc string) (*AptClient, error) {
 	if rpc == "" {
 		return nil, types.ErrRpcNull
@@ -516,6 +600,5 @@ func initUnSigMap(unSigTx *types.UnsignedTx) map[string]interface{} {
 	unsignedMap["gas_unit_price"] = fmt.Sprintf("%d", unSigTx.GasUnitPrice)
 	unsignedMap["expiration_timestamp_secs"] = fmt.Sprintf("%d", unSigTx.ExpirationTime)
 	unsignedMap["payload"] = unSigTx.Payload
-	//unsignedMap["secondary_signers"] = []string{unSigTx.Sender} // TODO: check
 	return unsignedMap
 }

@@ -211,3 +211,15 @@ type ExceptionMsg struct {
 	Code          string `json:"error_code"`
 	LedgerVersion string `json:"ledger_version"`
 }
+
+type Event struct {
+	Version        string      `json:"version"`
+	Key            string      `json:"key"`
+	SequenceNumber string      `json:"sequence_number"`
+	Type           string      `json:"type"`
+	Data           interface{} `json:"data"`
+}
+
+type EstimateGasPrice struct {
+	GasEstimate uint64 `json:"gas_estimate"`
+}

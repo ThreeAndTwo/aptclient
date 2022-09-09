@@ -31,13 +31,18 @@ type (
 		AccountModules(address, version string) ([]*types.AccountModule, error)
 		AccountModuleById(address, moduleID, version string) (*types.AccountModule, error)
 
-		Transactions(limit, start int) ([]*types.Transaction, error)
-		TransactionsByAccount(address string, limit, start int) ([]*types.Transaction, error)
+		Transactions(limit uint16, start uint64) ([]*types.Transaction, error)
+		TransactionsByAccount(address string, limit uint16, start uint64) ([]*types.Transaction, error)
 		TransactionByHash(hash string) (*types.Transaction, error)
 		TransactionByVersion(version uint64) (*types.Transaction, error)
 		SignMessage(unSigTx *types.UnsignedTx) (*types.SigningMessage, error)
 		SignTransaction(account *types.AptAccount, unsignedTx *types.UnsignedTx) (*types.SignedTx, error)
 		SubmitTx(signedTx *types.SignedTx) (*types.Transaction, error)
 		SimulateTx(signedTx *types.SignedTx) ([]*types.SimulateTx, error)
+		SubmitBatchTx(signedTxs []*types.SignedTx) error
+		EstimateGasPrice() (uint64, error)
+
+		GetEventsByKey(key string, limit uint16, start uint64) ([]*types.Event, error)
+		GetEventsByHandle(address, handle, fieldName string, limit uint16, start uint64) ([]*types.Event, error)
 	}
 )
