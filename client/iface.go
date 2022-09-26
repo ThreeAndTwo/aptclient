@@ -43,6 +43,7 @@ type (
 		EstimateGasPrice() (uint64, error)
 
 		GetEventsByKey(key string, limit uint16, start uint64) ([]*types.Event, error)
+		GetEventsByCreationNumber(address, creationNumber string, limit, start uint64) ([]*types.Event, error)
 		GetEventsByHandle(address, handle, fieldName string, limit uint16, start uint64) ([]*types.Event, error)
 	}
 )

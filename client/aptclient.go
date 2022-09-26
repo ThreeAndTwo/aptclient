@@ -495,6 +495,7 @@ func (a *AptClient) EstimateGasPrice() (uint64, error) {
 	return gp.GasEstimate, err
 }
 
+// Deprecated
 func (a *AptClient) GetEventsByKey(key string, limit uint16, start uint64) ([]*types.Event, error) {
 	if key == "" {
 		return nil, fmt.Errorf("key should be null")
@@ -515,6 +516,28 @@ func (a *AptClient) GetEventsByKey(key string, limit uint16, start uint64) ([]*t
 	var events []*types.Event
 	err = json.Unmarshal([]byte(req), &events)
 	return events, err
+}
+
+func (a *AptClient) GetEventsByCreationNumber(address, creationNumber string, limit, start uint64) ([]*types.Event, error) {
+	if address == "" || creationNumber == "" {
+		return nil, fmt.Errorf("address | handle | fieldName is null, plz check it")
+	}
+
+	rpc := fmt.Sprintf("%s/accounts/%s/events/%s?limit=%d&start=%d", a.rpc, address, creationNumber, limit, start)
+	req, err := a.connClient(rpc, nil).Request(GetTy)
+	if err != nil {
+		return nil, err
+	}
+
+	hasE, errDesc := hasExceptionForResp(req)
+	if hasE {
+		return nil, fmt.Errorf(errDesc)
+	}
+
+	var events []*types.Event
+	err = json.Unmarshal([]byte(req), &events)
+	return events, err
+
 }
 
 func (a *AptClient) GetEventsByHandle(address, handle, fieldName string, limit uint16, start uint64) ([]*types.Event, error) {

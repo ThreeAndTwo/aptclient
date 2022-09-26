@@ -213,8 +213,12 @@ type ExceptionMsg struct {
 }
 
 type Event struct {
-	Version        string      `json:"version"`
-	Key            string      `json:"key"`
+	Version string `json:"version"`
+	Key     string `json:"key"`
+	Guid    struct {
+		CreationNumber string `json:"creation_number"`
+		AccountAddress string `json:"account_address"`
+	} `json:"guid"`
 	SequenceNumber string      `json:"sequence_number"`
 	Type           string      `json:"type"`
 	Data           interface{} `json:"data"`
