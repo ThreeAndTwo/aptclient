@@ -61,7 +61,7 @@ func (a *AptAccount) prvKey2Account(prvKey string) (*types.AptAccount, error) {
 	var privateKey ed25519.PrivateKey
 	var err error
 
-	if strings.HasPrefix(prvKey, "0x") || strings.HasPrefix(prvKey,"0X") {
+	if strings.HasPrefix(prvKey, "0x") || strings.HasPrefix(prvKey, "0X") {
 		privateKey, err = a.hexPrvKey2Account(prvKey)
 	} else {
 		privateKey, err = a.base58PrvKey2Account(prvKey)

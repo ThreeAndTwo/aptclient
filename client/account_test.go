@@ -9,6 +9,8 @@ import (
 	"testing"
 )
 
+const mnemonic = "shoot island position soft burden budget tooth cruel issue economy destroy above"
+
 func TestNewAptAccount(t *testing.T) {
 	var tests = []struct {
 		desc    string
@@ -19,8 +21,8 @@ func TestNewAptAccount(t *testing.T) {
 	}{
 		{
 			desc:    "12L words",
-			key:     os.Getenv("KEY"),
-			authKey: os.Getenv("AUTH_KEY"),
+			key:     mnemonic,
+			authKey: "",
 			index:   0,
 			keyTy:   types.MnemonicTy,
 		},

@@ -35,7 +35,7 @@ const (
 type CoinType = uint32
 
 const (
-	CoinTypeAPT CoinType = 0x8000027d
+	CoinTypeAPT CoinType = 0x8000027d // 637
 )
 
 const (
@@ -244,7 +244,7 @@ func (km *KeyManager) GetAccountKey(purpose, coinType, account uint32) (*bip32.K
 // change constant 0 is used for external chain
 // change constant 1 is used for internal chain (also known as change addresses)
 func (km *KeyManager) GetChangeKey(purpose, coinType, account, change uint32) (*bip32.Key, error) {
-	path := fmt.Sprintf(`m/%d'/%d'/%d'/%d`, purpose-Apostrophe, coinType-Apostrophe, account, change)
+	path := fmt.Sprintf(`m/%d'/%d'/%d'/%d'`, purpose-Apostrophe, coinType-Apostrophe, account, change)
 
 	key, ok := km.getKey(path)
 	if ok {
@@ -267,7 +267,7 @@ func (km *KeyManager) GetChangeKey(purpose, coinType, account, change uint32) (*
 }
 
 func (km *KeyManager) GetShortAccountKey(purpose uint32, coinType uint32, account uint32) (*bip32.Key, error) {
-	path := fmt.Sprintf(`m/%d'/%d'/%d`, purpose-Apostrophe, coinType-Apostrophe, account)
+	path := fmt.Sprintf(`m/%d'/%d'/%d'`, purpose-Apostrophe, coinType-Apostrophe, account)
 
 	key, ok := km.getKey(path)
 	if ok {
@@ -285,7 +285,7 @@ func (km *KeyManager) GetShortAccountKey(purpose uint32, coinType uint32, accoun
 }
 
 func (km *KeyManager) GetShortKey(purpose uint32, coinType uint32, account uint32, index uint32) (*Key, error) {
-	path := fmt.Sprintf(`m/%d'/%d'/%d'/%d`, purpose-Apostrophe, coinType-Apostrophe, account, index)
+	path := fmt.Sprintf(`m/%d'/%d'/%d'/%d'`, purpose-Apostrophe, coinType-Apostrophe, account, index)
 
 	key, ok := km.getKey(path)
 	if ok {
@@ -308,7 +308,7 @@ func (km *KeyManager) GetShortKey(purpose uint32, coinType uint32, account uint3
 }
 
 func (km *KeyManager) GetKey(purpose, coinType, account, change, index uint32) (*Key, error) {
-	path := fmt.Sprintf(`m/%d'/%d'/%d'/%d/%d`, purpose-Apostrophe, coinType-Apostrophe, account, change, index)
+	path := fmt.Sprintf(`m/%d'/%d'/%d'/%d'/%d'`, purpose-Apostrophe, coinType-Apostrophe, account, change, index)
 
 	key, ok := km.getKey(path)
 	if ok {
