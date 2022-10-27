@@ -1,0 +1,113 @@
+package key_manager
+
+import (
+	"crypto/hmac"
+	"crypto/sha512"
+	"encoding/binary"
+	"errors"
+	"regexp"
+	"strconv"
+	"strings"
+)
+
+const (
+	// docs in https://github.com/satoshilabs/slips/blob/master/slip-0010.md
+	seedModifier = "ed25519 seed"
+)
+
+var (
+	ErrInvalidPath        = errors.New("invalid derivation path")
+	ErrNoPublicDerivation = errors.New("no public derivation for ed25519")
+
+	pathRegex = regexp.MustCompile(`^m(\/[0-9]+')+$`)
+)
+
+type KeyApt struct {
+	Key       []byte
+	ChainCode []byte
+}
+
+// DeriveForPath derives key for a path in BIP-44 format and a seed.
+// Ed25119 derivation operated on hardened keys only.
+func DeriveForPath(path string, seed []byte) (*KeyApt, error) {
+	if !isValidPath(path) {
+		return nil, ErrInvalidPath
+	}
+
+	key, err := NewMasterKey(seed)
+	if err != nil {
+		return nil, err
+	}
+
+	segments := strings.Split(path, "/")
+	for _, segment := range segments[1:] {
+		i64, err := strconv.ParseUint(strings.TrimRight(segment, "'"), 10, 32)
+		if err != nil {
+			return nil, err
+		}
+
+		// We operate on hardened keys
+		i := uint32(i64) + Apostrophe
+		key, err = key.Derive(i)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return key, nil
+}
+
+// NewMasterKey generates a new master key from seed.
+func NewMasterKey(seed []byte) (*KeyApt, error) {
+	_hmac := hmac.New(sha512.New, []byte(seedModifier))
+	_, err := _hmac.Write(seed)
+	if err != nil {
+		return nil, err
+	}
+	sum := _hmac.Sum(nil)
+	key := &KeyApt{
+		Key:       sum[:32],
+		ChainCode: sum[32:],
+	}
+	return key, nil
+}
+
+func (k *KeyApt) Derive(i uint32) (*KeyApt, error) {
+	// no public derivation for ed25519
+	if i < Apostrophe {
+		return nil, ErrNoPublicDerivation
+	}
+
+	iBytes := make([]byte, 4)
+	binary.BigEndian.PutUint32(iBytes, i)
+	key := append([]byte{0x0}, k.Key...)
+	data := append(key, iBytes...)
+
+	_hmac := hmac.New(sha512.New, k.ChainCode)
+	_, err := _hmac.Write(data)
+	if err != nil {
+		return nil, err
+	}
+	sum := _hmac.Sum(nil)
+	newKey := &KeyApt{
+		Key:       sum[:32],
+		ChainCode: sum[32:],
+	}
+	return newKey, nil
+}
+
+func isValidPath(path string) bool {
+	if !pathRegex.MatchString(path) {
+		return false
+	}
+
+	// Check for overflows
+	segments := strings.Split(path, "/")
+	for _, segment := range segments[1:] {
+		_, err := strconv.ParseUint(strings.TrimRight(segment, "'"), 10, 32)
+		if err != nil {
+			return false
+		}
+	}
+	return true
+}

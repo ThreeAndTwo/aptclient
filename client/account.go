@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"github.com/tyler-smith/go-bip39"
 	"strings"
 
 	"github.com/mr-tron/base58"
@@ -96,22 +97,18 @@ func (a *AptAccount) genPrvKey() (*types.AptAccount, error) {
 }
 
 func (a *AptAccount) mnemonic2Account(index int) (*types.AptAccount, error) {
-	km, err := key_manager.NewKeyManagerWithMnemonic(256, "", a.key)
-	if err != nil {
-		return nil, types.ErrMnemonicCount
-	}
-	key, err := km.GetKey(key_manager.PurposeBIP44, key_manager.CoinTypeAPT, 0, 0, uint32(index))
-	if err != nil {
-		return nil, types.ErrMnemonicCount
-	}
-
-	_, _, prvKey := key.EncodeEth()
-	seed, err := hex.DecodeString(prvKey)
+	seed, err := bip39.NewSeedWithErrorChecking(a.key, "")
 	if err != nil {
 		return nil, err
 	}
 
-	privateKey := ed25519.NewKeyFromSeed(seed[:32])
+	path := fmt.Sprintf("m/44'/637'/0'/0'/%d'", index)
+	key, err := key_manager.DeriveForPath(path, seed)
+	if err != nil {
+		return nil, err
+	}
+
+	privateKey := ed25519.NewKeyFromSeed(key.Key[:])
 	a.prvKey = privateKey
 	return &types.AptAccount{
 		Address:    a.address(),
