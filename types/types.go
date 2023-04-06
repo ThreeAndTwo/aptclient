@@ -108,23 +108,23 @@ type MoveStructField struct {
 }
 
 type Transaction struct {
-	Type                    string           `json:"type"`
-	Sender                  string           `json:"sender"`
-	SequenceNumber          string           `json:"sequence_number"`
-	MaxGasAmount            string           `json:"max_gas_amount"`
-	GasUnitPrice            string           `json:"gas_unit_price"`
-	ExpirationTimestampSecs string           `json:"expiration_timestamp_secs"`
-	Events                  []TxEvents       `json:"events"`
-	Payload                 *WriteSetPayload `json:"payload"`
-	Version                 string           `json:"version"`
-	Hash                    string           `json:"hash"`
-	StateRootHash           string           `json:"state_root_hash"`
-	EventRootHash           string           `json:"event_root_hash"`
-	GasUsed                 uint64           `json:"gas_used,string"`
-	Success                 bool             `json:"success"`
-	VMStatus                string           `json:"vm_status"`
-	AccumulatorRootHash     string           `json:"accumulator_root_hash"`
-	Changes                 []TxChange       `json:"changes"`
+	Type                    string      `json:"type"`
+	Sender                  string      `json:"sender"`
+	SequenceNumber          string      `json:"sequence_number"`
+	MaxGasAmount            string      `json:"max_gas_amount"`
+	GasUnitPrice            string      `json:"gas_unit_price"`
+	ExpirationTimestampSecs string      `json:"expiration_timestamp_secs"`
+	Events                  []TxEvents  `json:"events"`
+	Payload                 interface{} `json:"payload"`
+	Version                 string      `json:"version"`
+	Hash                    string      `json:"hash"`
+	StateRootHash           string      `json:"state_root_hash"`
+	EventRootHash           string      `json:"event_root_hash"`
+	GasUsed                 uint64      `json:"gas_used,string"`
+	Success                 bool        `json:"success"`
+	VMStatus                string      `json:"vm_status"`
+	AccumulatorRootHash     string      `json:"accumulator_root_hash"`
+	Changes                 []TxChange  `json:"changes"`
 }
 
 type SimulateTx struct {
@@ -166,17 +166,6 @@ type TxEvents struct {
 type TxEventData struct {
 	Created string `json:"created"`
 	RoleId  string `json:"role_id"`
-}
-
-type WriteSetPayload struct {
-	Type     string       `json:"type"`
-	WriteSet WriteSetData `json:"write_set"`
-}
-
-type WriteSetData struct {
-	Type      string      `json:"type"`
-	ExecuteAs string      `json:"execute_as"`
-	Script    interface{} `json:"script"`
 }
 
 type UnsignedTx struct {

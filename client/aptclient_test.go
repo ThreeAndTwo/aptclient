@@ -676,7 +676,7 @@ func TestAptClient_TransactionByHash(t *testing.T) {
 		{
 			name: "normal by hash",
 			rpc:  MAINNET_RPC_ADDR,
-			hash: "0x897ef35cea199183b30b84c5a6a690cd4f9e3f31ade4670dc12d50266230478a",
+			hash: "0x5bbd43c22673622cf541141302191d46d81662330427daf87f8ec028d380cd5c",
 		},
 		{
 			name: "params null",
