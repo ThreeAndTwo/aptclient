@@ -495,6 +495,7 @@ func (a *AptClient) EstimateGasPrice() (uint64, error) {
 	return gp.GasEstimate, err
 }
 
+// GetEventsByKey
 // Deprecated
 func (a *AptClient) GetEventsByKey(key string, limit uint16, start uint64) ([]*types.Event, error) {
 	if key == "" {

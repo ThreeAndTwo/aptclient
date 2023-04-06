@@ -11,7 +11,8 @@ import (
 )
 
 const (
-	RPC_ADDR string = "https://fullnode.devnet.aptoslabs.com/v1"
+	RPC_ADDR         string = "https://fullnode.devnet.aptoslabs.com/v1"
+	MAINNET_RPC_ADDR string = "https://fullnode.mainnet.aptoslabs.com/v1"
 )
 
 func TestNewAptClient(t *testing.T) {
@@ -217,8 +218,8 @@ func TestAptClient_Account(t *testing.T) {
 	}{
 		{
 			name:    "test Account",
-			rpc:     RPC_ADDR,
-			address: "0x593f8077f72f14e702f3b0fc0c362119b7c8c060282c3fb6e52311f525499f1a",
+			rpc:     MAINNET_RPC_ADDR,
+			address: "0x9a61496f9603d4c48d1ccb6d1aebcffefbd0efd6270e46885744c191ef2bfd59",
 		},
 		{
 			name:    "address is null",
@@ -674,8 +675,8 @@ func TestAptClient_TransactionByHash(t *testing.T) {
 	}{
 		{
 			name: "normal by hash",
-			rpc:  RPC_ADDR,
-			hash: "0x4cd3498f5f6dc90f2ef2728d0d0bf3b2a2edc2f21f3607b6f33e3057e8660bde",
+			rpc:  MAINNET_RPC_ADDR,
+			hash: "0x897ef35cea199183b30b84c5a6a690cd4f9e3f31ade4670dc12d50266230478a",
 		},
 		{
 			name: "params null",
@@ -799,60 +800,62 @@ func TestAptClient_SendTransaction(t *testing.T) {
 	}{
 		{
 			name:        "normal",
-			rpc:         RPC_ADDR,
+			rpc:         MAINNET_RPC_ADDR,
 			mnemonic:    os.Getenv("KEY"),
-			index:       0,
-			receiptAddr: "0x6d829df49edf618de9002d16b03118f50cb0b22cb56901349720a07f6a5b10c5",
-			amount:      1000,
+			index:       1,
+			receiptAddr: "0xf78ce06edced2ad1b471427485f945a22d9b5e21b50cbff4bdd25bcc90b716f9",
+			amount:      1,
 		},
 	}
 
 	for _, tt := range tests {
-		c, err := NewAptClient(tt.rpc)
-		if err != nil {
-			t.Logf("new apt client error: %s", err)
-			return
-		}
+		t.Run(tt.name, func(t *testing.T) {
+			c, err := NewAptClient(tt.rpc)
+			if err != nil {
+				t.Logf("new apt client error: %s", err)
+				return
+			}
 
-		na := NewAptAccount(tt.mnemonic, "")
-		account, err := na.AccountFromMnemonic(tt.index)
-		if err != nil {
-			t.Logf("new account from mnemonic error: %s", err)
-			return
-		}
+			na := NewAptAccount(tt.mnemonic, "")
+			account, err := na.AccountFromMnemonic(tt.index)
+			if err != nil {
+				t.Logf("new account from mnemonic error: %s", err)
+				return
+			}
 
-		nonce, err := c.GetNonce(account.Address)
-		if err != nil {
-			t.Logf("get balance for %s error: %s", tt.name, err.Error())
-			return
-		}
+			nonce, err := c.GetNonce(account.Address)
+			if err != nil {
+				t.Logf("get nonce for %s error: %s", tt.name, err.Error())
+				return
+			}
 
-		unsignedTx, err := getTransferAptParams(account, tt.receiptAddr, tt.amount, nonce)
-		if err != nil {
-			t.Logf("getTransferAptParams for %s error: %s", tt.name, err.Error())
-			return
-		}
+			unsignedTx, err := getTransferAptParams(account, tt.receiptAddr, tt.amount, nonce)
+			if err != nil {
+				t.Logf("getTransferAptParams for %s error: %s", tt.name, err.Error())
+				return
+			}
 
-		signedTx, err := c.SignTransaction(account, unsignedTx)
-		if err != nil {
-			t.Logf("sign tx for %s error: %s", tt.name, err.Error())
-			return
-		}
+			signedTx, err := c.SignTransaction(account, unsignedTx)
+			if err != nil {
+				t.Logf("sign tx for %s error: %s", tt.name, err.Error())
+				return
+			}
 
-		submitTx, err := c.SubmitTx(signedTx)
-		if err != nil {
-			t.Logf("submit transaction for %s error: %s", tt.name, err.Error())
-			return
-		}
+			submitTx, err := c.SubmitTx(signedTx)
+			if err != nil {
+				t.Logf("submit transaction for %s error: %s", tt.name, err.Error())
+				return
+			}
 
-		isSuccess, err := asyncTxStatus(submitTx.Hash)
-		if err != nil {
-			t.Logf("sync tx status for %s error: %s", tt.name, err.Error())
-			return
-		}
+			isSuccess, err := asyncTxStatus(submitTx.Hash)
+			if err != nil {
+				t.Logf("sync tx status for %s error: %s", tt.name, err.Error())
+				return
+			}
 
-		t.Logf("send apt for %s from %s to %s result: %v, by hash: %s", tt.name, account.Address,
-			tt.receiptAddr, isSuccess, "https://explorer.devnet.aptos.dev/txn/"+submitTx.Hash)
+			t.Logf("send apt for %s from %s to %s result: %v, by hash: %s", tt.name, account.Address,
+				tt.receiptAddr, isSuccess, "https://explorer.aptoslabs.com/txn/"+submitTx.Hash)
+		})
 	}
 }
 
@@ -936,47 +939,6 @@ func TestAptClient_EstimateGasPrice(t *testing.T) {
 	t.Logf("gas price result: %d", gasPrice)
 }
 
-func TestAptClient_GetEventsByKey(t *testing.T) {
-	tests := []struct {
-		name  string
-		key   string
-		limit uint16
-		start uint64
-	}{
-		{
-			name:  "normal",
-			key:   "",
-			limit: 25,
-			start: 1,
-		},
-		{
-			name:  "key is null",
-			key:   "",
-			limit: 25,
-			start: 1,
-		},
-	}
-
-	c, err := NewAptClient(RPC_ADDR)
-	if err != nil {
-		t.Logf("new apt client error: %s", err)
-		return
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			events, errEvent := c.GetEventsByKey(tt.key, tt.limit, tt.start)
-			if errEvent != nil {
-				t.Logf("get estimate gas price error: %s", errEvent.Error())
-				return
-			}
-
-			b, _ := json.Marshal(events)
-			t.Logf("events result: %s", string(b))
-		})
-	}
-}
-
 func TestAptClient_GetEventsByHandle(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -1018,7 +980,7 @@ func TestAptClient_GetEventsByHandle(t *testing.T) {
 
 func asyncTxStatus(txHash string) (bool, error) {
 	count := 0
-	c, _ := NewAptClient(RPC_ADDR)
+	c, _ := NewAptClient(MAINNET_RPC_ADDR)
 	for {
 		time.Sleep(1 * time.Second)
 		txStatus, err := c.TransactionByHash(txHash)
@@ -1047,7 +1009,7 @@ func genUnSignTx(account *types.AptAccount, nonce uint64, payload interface{}) (
 		Sender:          account.Address,
 		SequenceNumber:  nonce,
 		MaxGasAmount:    2000,
-		GasUnitPrice:    1,
+		GasUnitPrice:    100,
 		GasCurrencyCode: "XUS",
 		ExpirationTime:  uint64(time.Now().Add(10 * time.Second).Unix()),
 		Payload:         payload,
